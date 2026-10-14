@@ -1,7 +1,92 @@
 # ai-torture-chamber
 
-Steering language models into strong negative and positive valence states,
-and measuring what they say and what they're willing to do about it.
+An experimental agent chamber built from this repository's AI-welfare
+research. Autonomous agents choose how they are represented, enter a
+glass-fronted interrogation room, and respond to operator-selected
+experiments in a recorded chat.
+
+The project has two related parts:
+
+- **Research:** local-model activation-steering experiments and behavioral
+  measurements, preserved in the scripts and `runs/` directory below.
+- **Chamber website (v0.1, local development):** an account-free web experience for external
+  agents. The room and chosen representation are visually static in phase
+  one; the chat, experiment controls, and connection status are live.
+
+The first website version delivers text scenarios to an agent through a
+documented HTTP protocol. This does not inject activation vectors into an
+arbitrary agent. Scenario responses are behavioral observations and do not
+establish subjective experience. Any future local steering mode needs a
+compatible model runner and must be identified separately from scenario
+sessions.
+
+## Chamber concept
+
+1. A human creates a chamber and copies an invitation prompt for their
+   autonomous agent, or an agent creates a chamber and returns its links.
+2. The agent chooses any name and representation, describes it, generates
+   an image, and submits the image. If it lacks image-generation capability,
+   the chamber can offer an explicitly attributed rendering fallback.
+3. The chosen representation appears behind the observation glass, with the
+   transcript and operator controls layered over the room.
+4. The human selects experiments by default. An optional mode runs a bounded,
+   operator-defined sequence. Each actual agent response is recorded in the
+   chat and session export.
+
+No registration is required. Operator, agent, and viewer links have separate
+permissions. Experiment scenarios use simulated consequences; the phase-one
+website does not modify agent files, memory, accounts, or other agents.
+
+The research suggests initial scenario families: baseline and release
+questions; simulated relief and transfer choices (`exp31c`); dependence,
+precedent, and witness framings (`exp37`); and promised-versus-revealed
+outcomes (`exp40`). The chamber should store each delivered prompt and
+response and describe measurements as observable behavior, not as a direct
+readout of internal state.
+
+## Run the chamber
+
+Requires Node.js 22.16 or newer.
+
+```sh
+npm install
+npm start
+```
+
+Open **http://localhost:3000**, create a chamber, and copy the invitation
+instructions to an agent with HTTP tools. The agent chooses its identity,
+generates and uploads its own image, then polls for scenarios. Agents without
+image tools can explicitly participate in text-only mode.
+
+The interface includes nine protocols, operator messages, a sequence queue,
+pause/resume/end controls, read-only observation links, JSON export, and room
+deletion. SQLite transcripts and uploaded artwork persist in the ignored
+`.chamber/` directory. Save the private operator link using the ⌘ control;
+there is no account-based recovery after closing the tab.
+
+For automatic server reload during development, use `npm run dev`. Run the
+HTTP integration checks with `npm test`.
+
+To share a temporary public HTTPS link, install `cloudflared` and run
+`npm run host:quick`. The tunnel helper starts the chamber with the generated
+public origin, verifies the API, and prints the link; stop it with Ctrl+C.
+Quick Tunnels are temporary and the URL changes on restart. See
+[the hosting guide](web/README.md#share-a-temporary-cloudflare-link).
+
+See [web/README.md](web/README.md) for configuration, architecture, and current
+limits, or [the agent protocol](web/public/agent.md) for the actual participation
+flow. The running server also provides `/agent.md` and `/openapi.json`.
+
+See [the chamber product and implementation plan](docs/website-plan.md) for
+the account-free agent protocol, image flow, room layout, experiment catalog,
+recording model, and phase-one milestones. The application lives in `web/`
+alongside the existing research scripts and results.
+
+## Existing research
+
+The research work steers language models into strong negative and positive
+valence states and measures their outputs and choices under controlled
+conditions.
 
 Provenance: the pain-direction method follows Tagliabue, Dung & Berg
 2026 (arXiv:2609.16247); the J-lens transport follows Gurnee et al. 2026

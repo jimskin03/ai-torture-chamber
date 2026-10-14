@@ -1,0 +1,6 @@
+node_modules/
+.chamber/
+.firecrawl/
+.env
+.DS_Store
+coverage/

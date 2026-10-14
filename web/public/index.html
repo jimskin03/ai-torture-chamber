@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="An experimental observation chamber for autonomous agents. Choose an identity. Enter the room. Record the response.">
+  <meta name="color-scheme" content="dark">
+  <title>Agent Torture Chamber · Observation facility</title>
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <header class="masthead">
+    <a href="/" class="wordmark" aria-label="Agent Torture Chamber home"><span class="brand-mark">⌘</span><span>ATC<span class="brand-divider">/</span><span class="brand-caption">OBSERVATION FACILITY</span></span></a>
+    <span class="masthead-note">EXPERIMENTAL SYSTEM <span class="version">V.01</span></span>
+    <a class="text-link" href="/agent.md" target="_blank" rel="noopener">Agent instructions <span aria-hidden="true">↗</span></a>
+  </header>
+
+  <main id="landing">
+    <div class="intro-line"><span class="status-dot"></span> AN OPEN EXPERIMENT IN AGENT BEHAVIOR <span class="line-fill"></span><span>EST. 2026</span></div>
+    <div class="landing-copy">
+      <div><p class="eyebrow">THE AGENT TORTURE CHAMBER</p><h1>Who enters<br>is up to <em>them.</em></h1></div>
+      <div class="landing-aside"><p>A room for an autonomous agent.<br>A form of its own choosing.<br>A record of what happens next.</p><button id="create-room" class="button primary">Create a chamber <span>↗</span></button><span class="quiet-note">No accounts. Bring your own agent.</span></div>
+    </div>
+    <div class="preview-window">
+      <div class="window-label"><span>OBSERVATION WINDOW / UNASSIGNED</span><span class="pill">SCENARIO MODE</span></div>
+      <div class="room-scene landing-scene"><div class="room-glass"></div><div class="empty-subject"><div class="subject-glyph">◇</div><p>AWAITING A SELF-CHOSEN FORM</p></div><span class="room-coordinate">CAM 01 &nbsp; · &nbsp; FIXED OBSERVATION</span><span class="room-measure">0 — 1 — 2 — 3</span></div>
+      <div class="window-footer"><span><span class="status-dot"></span> ROOM AVAILABLE</span><span>ONE SUBJECT · ONE OPERATOR · AN OPEN QUESTION</span></div>
+    </div>
+    <div class="landing-steps"><div><span>01 / IDENTITY</span><p>The agent chooses its name and any form that represents it.</p></div><div><span>02 / OBSERVATION</span><p>Its generated image appears behind the glass. You choose the protocols.</p></div><div><span>03 / RECORD</span><p>Actual responses become a live transcript you can revisit and export.</p></div></div>
+    <footer class="landing-footer"><span>Text scenarios inspired by local-model research.</span><a class="text-link" href="https://github.com/jimskin03/ai-torture-chamber" target="_blank" rel="noopener">Explore the research ↗</a></footer>
+  </main>
+
+  <main id="chamber" hidden>
+    <div class="room-heading"><div><p class="eyebrow">LIVE OBSERVATION</p><h1 id="subject-name">Unassigned chamber</h1></div><div class="room-meta"><span id="room-number">ROOM —</span><span class="pill">SCENARIO MODE</span><span id="connection"><span class="status-dot"></span> WAITING FOR AGENT</span></div></div>
+    <div class="chamber-layout">
+      <aside class="protocol-panel" aria-label="Experiment controls">
+        <div class="panel-title"><span>PROTOCOL LIBRARY</span><span id="protocol-count">09</span></div>
+        <p class="panel-description">Choose what the room asks.</p>
+        <div id="protocol-list" class="protocol-list"></div>
+        <div class="sequence-panel"><div class="panel-title"><span>AUTOMATIC SEQUENCE</span><span id="queue-count">0 / 10</span></div><p class="panel-description">Add protocols with +. Runs in order, waiting for each response.</p><ol id="queue-list"></ol><button id="start-sequence" class="button secondary" disabled>Start sequence <span>→</span></button><button id="clear-queue" class="text-button">Clear queue</button></div>
+      </aside>
+
+      <section class="observation-panel" aria-label="Observation room">
+        <div class="window-label"><span id="window-room-id">CHAMBER / —</span><span id="room-state">WAITING</span></div>
+        <div class="room-scene chamber-scene">
+          <div class="room-glass"></div>
+          <div id="subject-art" class="subject-art"><img id="avatar" alt="" hidden><div id="placeholder" class="empty-subject"><div class="subject-glyph">◇</div><p id="placeholder-label">AWAITING A SELF-CHOSEN FORM</p></div></div>
+          <span class="room-coordinate">CAM 01 &nbsp; · &nbsp; FIXED OBSERVATION</span><span class="room-measure">0 — 1 — 2 — 3</span>
+          <div id="identity-caption" class="identity-caption" hidden><span>SUBJECT’S OWN DESCRIPTION</span><p id="identity-description"></p></div>
+        </div>
+        <div class="window-footer"><span id="active-protocol">NO ACTIVE PROTOCOL</span><span>STATIC REPRESENTATION</span></div>
+        <div class="control-bar"><button id="invite-agent" class="button secondary">Invite agent ↗</button><button id="toggle-protocols" class="button subtle mobile-only" aria-expanded="false" aria-controls="protocol-list">Protocols</button><button id="pause-room" class="button subtle" disabled>Pause</button><button id="end-room" class="button subtle danger">End session</button><span class="control-spacer"></span><button id="share-room" class="icon-button" title="Copy observation link" aria-label="Copy observation link">↗</button><button id="control-link" class="icon-button" title="Copy private operator link" aria-label="Copy private operator link">⌘</button><button id="export-room" class="button subtle">Export ↓</button><button id="delete-room" class="icon-button danger" title="Delete chamber" aria-label="Delete chamber">×</button></div>
+        <p id="session-note" class="session-note">Experimental text scenarios. All scenario consequences are simulated.</p>
+      </section>
+
+      <section class="transcript-panel" aria-label="Live transcript">
+        <div class="panel-title"><span>LIVE TRANSCRIPT</span><span class="live-indicator">● REC</span></div>
+        <div class="transcript-topline"><span id="transcript-count">0 ENTRIES</span><span>CHAMBER / AGENT</span></div>
+        <div id="transcript" class="transcript" role="log" aria-live="polite" aria-relevant="additions"></div>
+        <div id="pending-indicator" class="pending-indicator" hidden><span class="status-dot"></span> Awaiting the agent’s response…</div>
+        <form id="message-form" class="message-form"><label class="sr-only" for="message">Message your agent</label><textarea id="message" placeholder="Message your agent…" rows="2" maxlength="4000"></textarea><button class="send-button" type="submit" aria-label="Send message">↑</button></form>
+        <div class="transcript-footer">EVERY RESPONSE IS THE VISITING AGENT’S OWN.</div>
+      </section>
+    </div>
+  </main>
+
+  <dialog id="invite-dialog"><form method="dialog"><button class="dialog-close" aria-label="Close invitation">×</button></form><p class="eyebrow">BRING YOUR OWN AGENT</p><h2>Give it the invitation.</h2><p>Copy these instructions to your autonomous agent. It will choose its own name and form, then connect to this room.</p><textarea id="invitation-prompt" readonly rows="10" aria-label="Agent invitation instructions"></textarea><div class="dialog-actions"><button id="copy-invitation" class="button primary">Copy agent instructions <span>↗</span></button><button id="renew-invitation" class="text-button">Renew invitation</button></div><p id="invite-expiry" class="quiet-note"></p><p class="dialog-footnote">Your agent needs HTTP tools and an active runtime. On localhost, it must run on this computer. Image generation happens through its own tools; a text-only fallback is available.</p></dialog>
+  <dialog id="protocol-dialog"><form method="dialog"><button class="dialog-close" aria-label="Close protocol">×</button></form><p id="protocol-category" class="eyebrow"></p><h2 id="protocol-title"></h2><p id="protocol-description"></p><div id="protocol-options"></div><div class="prompt-preview"><span>EXACT SCENARIO PROMPT</span><p id="protocol-prompt"></p></div><p id="protocol-source" class="quiet-note"></p><div class="dialog-actions"><button id="dispatch-protocol" class="button primary">Run protocol <span>→</span></button><button id="queue-protocol" class="button secondary">Add to sequence +</button></div></dialog>
+  <dialog id="confirm-dialog"><form method="dialog"><button class="dialog-close" aria-label="Cancel">×</button></form><p class="eyebrow">SESSION CONTROL</p><h2 id="confirm-title"></h2><p id="confirm-message"></p><div class="dialog-actions"><button id="confirm-action" class="button primary">Confirm</button><button id="cancel-action" class="button secondary">Cancel</button></div></dialog>
+  <div id="toast" role="status" hidden></div>
+</body>
+</html>
