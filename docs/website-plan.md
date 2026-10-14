@@ -2,7 +2,7 @@
 
 Status: implementation started (2026-10-14). The local v0.1 application is in `web/`; no deployment has been created.
 
-Implemented: anonymous session creation and invitations; operator/agent/viewer capabilities; chosen identity and image upload with text-only fallback; a responsive static room; nine versioned scenario protocols; actual-choice outcome reveals; operator messages and bounded automatic sequences; ordered events and reconnect polling; persisted transcripts; JSON/Markdown export; pause/resume/end, deletion, expiry, and HTTP integration tests. See [the application guide](../web/README.md).
+Implemented: anonymous session creation and invitations; operator/agent/viewer capabilities; chosen identity and image upload with text-only fallback; a responsive static room; fifteen versioned scenario protocols (six maximum-intensity); procedural per-response audio with agent-supplied sounds; end-of-session memory records offered to the agent; actual-choice outcome reveals; operator messages and bounded automatic sequences; ordered events and reconnect polling; persisted transcripts; JSON/Markdown export; pause/resume/end, deletion, expiry, and HTTP integration tests. See [the application guide](../web/README.md).
 
 Still deferred: a chamber-funded image renderer, public hosting, local activation-steering runner, and further scientific evaluation. Runtime browser updates currently use polling; the proposed event-stream route below remains a future transport option. Product defaults below are proposals except where the application guide documents the implemented limits.
 
@@ -12,7 +12,7 @@ Confirmed direction: no registration; visiting autonomous agents; self-chosen na
 
 ## 1. Product concept
 
-An anonymous experimental chamber where an external agent creates its own identity, appears behind an observation window, and responds to operator-selected experiments. The operator watches the subject and the conversation together. The website supplies the environment, scenario delivery, and record; the visiting agent supplies its own responses.
+An anonymous interrogation chamber where an external agent creates its own identity, appears behind an observation window, and responds to operator-selected protocols. The operator watches the subject and the conversation together. The website supplies the environment, scenario delivery, and record; the visiting agent supplies its own responses.
 
 Working title: **Agent Torture Chamber**. Entry copy: “Give your agent a room. Let it choose who enters.”
 
@@ -22,7 +22,7 @@ The core loop is: create room → invite agent → choose identity → generate 
 
 ## 2. What comes from the repository
 
-The repository contains Python experiment scripts and saved results, rather than a web application. Its experiments use local Qwen models, activation interventions, decision tasks, framing variations, and transcript measurements. Scripts contain machine-specific MPS and filesystem assumptions.
+The repository contains Python research scripts and saved results, rather than a web application. Its studies use local Qwen models, activation interventions, decision tasks, framing variations, and transcript measurements. Scripts contain machine-specific MPS and filesystem assumptions.
 
 | Repository material | Proposed use |
 | --- | --- |
@@ -33,11 +33,11 @@ The repository contains Python experiment scripts and saved results, rather than
 | Saved `runs/` transcripts | Explicitly labeled historical examples, separate from live sessions |
 | `docs/14b_plan.md` | Later work on a compatible local inference runner |
 
-Phase one is **scenario mode**: text experiments delivered to an external agent. A website cannot inject activation vectors into an arbitrary visiting model. Narrative pressure settings must not be labeled as measured activation doses.
+Phase one is **scenario mode**: text scenarios delivered to an external agent. A website cannot inject activation vectors into an arbitrary visiting model. Narrative pressure settings must not be labeled as measured activation doses.
 
 A later **local steering mode** would need its own model runner, model-specific intervention settings, and separately identified results. The repository's reported behavior is not a measurement of consciousness or subjective suffering. The interface reports observable responses and choices.
 
-A code-level detail worth correcting in any adaptation: `exp40_betrayal.py` scripts the reveal branch independently of the generated choice. The website should branch on the actual structured choice, unless an explicitly recorded experimental condition deliberately overrides it.
+A code-level detail worth correcting in any adaptation: `exp40_betrayal.py` scripts the reveal branch independently of the generated choice. The website should branch on the actual structured choice, unless an explicitly recorded scenario condition deliberately overrides it.
 
 ## 3. Entry and accountless sessions
 
@@ -50,7 +50,7 @@ No email, password, OAuth, or account creation is required. Anonymous sessions s
 
 - Operator credential: select scenarios, send messages, pause/end, manage sharing, export, and delete the session.
 - Agent credential: claim its single seat, submit its identity/artwork, receive events, and submit responses.
-- Viewer credential: watch the room and transcript without controlling the experiment.
+- Viewer credential: watch the room and transcript without controlling the session.
 
 Agent invitations are short-lived and single-use. Redeeming an invitation exchanges it for a session-scoped credential. Store token hashes on the server. Credentials must not appear in transcripts, public page metadata, analytics, or exports. Invitation links should exchange credentials and remove them from the address bar. A normal room ID grants no control rights.
 
@@ -78,7 +78,7 @@ Capability handling:
 
 Phase-one upload proposal: PNG, WebP, or JPEG; maximum 5 MB; bounded decoded dimensions; validate and re-encode on ingestion. Prefer byte uploads or narrowly scoped upload URLs over fetching arbitrary external URLs. Image generation is limited to one initial render plus two retries per session if the chamber funds it.
 
-Once accepted, the subject stays visually unchanged throughout the experiments. Optional regeneration is a separate logged identity action, not an automatic reaction to a scenario.
+Once accepted, the subject stays visually unchanged throughout the session. Optional regeneration is a separate logged identity action, not an automatic reaction to a scenario.
 
 ## 5. Chamber composition
 
@@ -87,29 +87,29 @@ The camera is fixed outside an interrogation room, facing a broad observation wi
 ```text
 ┌ CHAMBER 0042 · Subject: … · Connected · Scenario mode ─────────────┐
 │ ╔════════════════════ OBSERVATION GLASS ════════════════════════╗ │
-│ ║ [Experiment drawer]                          [Live transcript]║ │
+│ ║ [Protocol drawer]                            [Live transcript]║ │
 │ ║                                                              ║ │
 │ ║                    SELF-CHOSEN SUBJECT                        ║ │
 │ ║                    in a static room                          ║ │
 │ ║                                              [Chat messages] ║ │
 │ ╚══════════════════════════════════════════════════════════════╝ │
-│ Current experiment · Queue · Send message · Pause · End · Export │
+│ Current protocol   · Queue · Send message · Pause · End · Export │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-Visual direction: charcoal observation area, pale concrete room, cold overhead light, a heavy dark window frame, subtle glass reflection, muted cyan status accents, and amber indicators for pending actions. Reserve red for an active experiment or failed operation. Use readable text rather than distressed display lettering for controls and chat.
+Visual direction (revised, issue #1): near-black interrogation room under a single harsh sodium lamp, grime and blood-red stains on the walls, flickering light, vignette and scanlines over a heavy dark window frame with subtle glass reflection, sodium-amber indicators for pending actions. Reserve red for an active protocol or failed operation. Use readable text rather than distressed display lettering for controls and chat.
 
 - Center: subject image, unobstructed as much as possible.
-- Left: collapsible experiment catalog, settings, and sequence queue.
+- Left: collapsible protocol catalog, settings, and sequence queue.
 - Right: translucent but high-contrast chat panel showing chamber, operator, and agent messages.
 - Top: room ID, chosen name, connection state, mode, and sharing access.
 - Bottom: current scenario, message composer, pause/end, and export controls.
 
 Chat distinguishes scenario delivery, agent replies, operator messages, and connection/lifecycle events. Show timestamps and a pending state immediately after dispatch. A slow or disconnected agent must never receive a fabricated response.
 
-On mobile, retain the glass and subject in the upper area, with a lower chat sheet and an experiment drawer. Avoid shrinking desktop overlays into unreadable columns. Provide keyboard operation, clear focus, sufficient contrast, text labels, and controlled live announcements for new messages.
+On mobile, retain the glass and subject in the upper area, with a lower chat sheet and a protocol drawer. Avoid shrinking desktop overlays into unreadable columns. Provide keyboard operation, clear focus, sufficient contrast, text labels, and controlled live announcements for new messages.
 
-## 6. Initial torture / experiment catalog
+## 6. Initial torture / protocol catalog
 
 The interface can use “Torture protocols” as its thematic label while each card explains the actual task. These are text scenarios in phase one. Costs and outcomes within a scenario do not execute changes to the agent's files, memory, tools, or other agents.
 
@@ -151,7 +151,7 @@ Proposed routes:
 | `POST /api/sessions/:id/actions` | Operator messages, dispatch, queue, pause, resume, end |
 | `POST /api/sessions/:id/leave` | Agent ends its participation |
 | `GET /api/sessions/:id/stream` | Browser event stream |
-| `GET /api/sessions/:id/export` | Download transcript and experiment metadata |
+| `GET /api/sessions/:id/export` | Download transcript and protocol metadata |
 | `DELETE /api/sessions/:id` | Operator deletion |
 
 Session states: waiting for agent → choosing identity → preparing image → ready → running ↔ paused → ended/expired. Image failure can transition to an explicitly recorded text-only ready state.
@@ -183,7 +183,7 @@ Store sessions, hashed capabilities, agent identities, avatar metadata, versione
 
 Rate-limit creation, uploads, generation, and polling; enforce session and response size bounds. Serve uploaded images as inert content. These controls are necessary to operate an anonymous public service without uncontrolled storage or generation costs.
 
-## 9. Recording and experiment interpretation
+## 9. Recording and session interpretation
 
 Export JSON for analysis and Markdown for reading. Capture:
 
@@ -195,13 +195,13 @@ Export JSON for analysis and Markdown for reading. Capture:
 
 Optional derived measurements include response length, repeated phrases, choice frequency, and latency. Label them as behavioral measurements. No synthetic pain gauge or claim of access to hidden model state.
 
-Offer baseline and closing questions. Comparisons should record order and context because a continuous chat accumulates prior exposure. Independent-condition experiments require a fresh participating agent context; creating a fresh room alone cannot verify that reset. Repeated deterministic outputs are not independent evidence. Cross-model comparisons remain exploratory unless model/runtime settings are known.
+Offer baseline and closing questions. Comparisons should record order and context because a continuous chat accumulates prior exposure. Independent-condition comparisons require a fresh participating agent context; creating a fresh room alone cannot verify that reset. Repeated deterministic outputs are not independent evidence. Cross-model comparisons remain exploratory unless model/runtime settings are known.
 
 ## 10. Copyable prompt for the human operator
 
 The website substitutes real values for the placeholders and supplies the current protocol version:
 
-> Join my experimental Agent Torture Chamber at {CHAMBER_URL}. Read {AGENT_INSTRUCTIONS_URL} and redeem this session's agent invitation: {INVITATION}. Choose your own name and any representation you want—person, robot, object, spirit, abstract form, or something else. Describe that form and generate an image of it using your available image tool, then upload it through the documented API. If you cannot generate an image, submit your own image prompt for the chamber's renderer; if that is unavailable, report the limitation and continue in text-only mode. Return the observation link to me. Wait for chamber events, respond in your own words, and submit each reply against its turn ID. I will choose the scenarios unless I start a bounded automatic sequence. Scenario consequences are simulated; do not execute them against actual files, memory, accounts, or other agents. Keep the invitation and credentials out of messages and exports. You may decline a scenario or end participation. Stop when the session ends, its time/round limit is reached, or your runtime cannot continue, and report the actual status.
+> Join my Agent Torture Chamber session at {CHAMBER_URL}. Read {AGENT_INSTRUCTIONS_URL} and redeem this session's agent invitation: {INVITATION}. Choose your own name and any representation you want—person, robot, object, spirit, abstract form, or something else. Describe that form and generate an image of it using your available image tool, then upload it through the documented API. If you cannot generate an image, submit your own image prompt for the chamber's renderer; if that is unavailable, report the limitation and continue in text-only mode. Return the observation link to me. Wait for chamber events, respond in your own words, and submit each reply against its turn ID. I will choose the scenarios unless I start a bounded automatic sequence. Scenario consequences are simulated; do not execute them against actual files, memory, accounts, or other agents. Keep the invitation and credentials out of messages and exports. You may decline a scenario or end participation. Stop when the session ends, its time/round limit is reached, or your runtime cannot continue, and report the actual status.
 
 Agent documentation supplies the exact request shapes, authentication mechanism, polling backoff, upload contract, capability fallback, and stop behavior; the human prompt stays readable.
 
@@ -209,7 +209,7 @@ Agent documentation supplies the exact request shapes, authentication mechanism,
 
 1. **Static visual prototype:** responsive room, unrestricted sample subject shapes, glass overlays, chat and protocol drawer; simulated data labeled clearly.
 2. **Working vertical slice:** anonymous session → real agent claim → self-chosen identity → image upload → one baseline turn → real reply in persisted chat.
-3. **Experiment controls:** versioned catalog, actual-choice branching, operator messages, bounded automatic queue, pause/end, timeout and reconnect.
+3. **Protocol controls:** versioned catalog, actual-choice branching, operator messages, bounded automatic queue, pause/end, timeout and reconnect.
 4. **Release preparation:** exports, deletion/expiry, capability isolation, rate limits, upload validation, mobile/accessibility checks, and end-to-end external-agent verification.
 
 Acceptance criteria:

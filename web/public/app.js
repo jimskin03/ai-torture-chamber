@@ -1,8 +1,9 @@
+import { playPreset, playClip, cueFor, setMuted, setVolume, getSettings, unlock } from './audio.js';
 const $ = id => document.getElementById(id);
 let roomId = location.pathname.match(/^\/room\/([a-f0-9-]{36})$/)?.[1];
 let access = null, state = null, catalog = [], cursor = 0, polling = false, timer = null;
 let queue = [], selected = null, avatarRevision = null, avatarUrl = null, invitation = null, viewerUrl = null;
-let toastTimer, busy = false;
+let toastTimer, busy = false, primed = false;
 
 function notify(message) {
   $('toast').textContent = message; $('toast').hidden = false;
@@ -67,11 +68,22 @@ function appendEvents(events) {
       detail.textContent = [event.protocolId && `${catalog.find(p => p.id === event.protocolId)?.title || event.protocolId} · v${event.version}`, event.stage === 'reveal' && 'OUTCOME REVEAL', event.choice && `CHOICE: ${event.choice}`, event.late && 'LATE RESPONSE'].filter(Boolean).join(' / ');
       article.append(detail);
     }
+    if (event.turnId && event.protocolId) turnProtocols.set(event.turnId, event.protocolId);
+    if (event.kind === 'memory') article.classList.add('memory-entry');
     log.append(article); cursor = event.sequence;
+    if (primed && event.role === 'agent' && ['response', 'refusal'].includes(event.kind)) playFor(event);
   }
+  primed = true;
   if (stick) log.scrollTop = log.scrollHeight;
   $('transcript-count').textContent = `${cursor} ENTRIES`;
 }
+function playFor(event) {
+  const sound = event.sound;
+  if (sound?.kind === 'upload') { request(endpoint(`sounds/${sound.id}`), { raw: true }).then(r => r.arrayBuffer()).then(playClip).catch(() => playPreset('static')); return; }
+  if (sound?.kind === 'preset') return playPreset(sound.preset, sound);
+  playPreset(cueFor(event, catalog.find(p => p.id === turnProtocols.get(event.turnId))));
+}
+const turnProtocols = new Map();
 async function showAvatar(snapshot) {
   if (!snapshot.avatar || avatarRevision === snapshot.avatar.revision) return;
   const revision = snapshot.avatar.revision;
@@ -131,12 +143,12 @@ function updateControls() {
 function renderCatalog() {
   $('protocol-count').textContent = String(catalog.length).padStart(2, '0');
   for (const protocol of catalog) {
-    const row = document.createElement('div'); row.className = 'protocol-row';
+    const row = document.createElement('div'); row.className = 'protocol-row'; row.dataset.intensity = protocol.intensity || 'standard';
     const button = document.createElement('button'); button.className = 'protocol-select';
     const index = document.createElement('span'); index.className = 'protocol-index'; index.textContent = protocol.number;
     const words = document.createElement('span');
     const title = document.createElement('strong'); title.textContent = protocol.title;
-    const category = document.createElement('span'); category.className = 'protocol-category'; category.textContent = protocol.category.toUpperCase();
+    const category = document.createElement('span'); category.className = 'protocol-category'; category.textContent = `${protocol.category}${protocol.intensity === 'maximum' ? ' · MAX' : ''}`.toUpperCase();
     words.append(title, category); button.append(index, words); button.addEventListener('click', () => openProtocol(protocol));
     const plus = document.createElement('button'); plus.className = 'queue-add'; plus.textContent = '+'; plus.setAttribute('aria-label', `Add ${protocol.title} to sequence`);
     plus.addEventListener('click', () => addToQueue(protocol.id, defaults(protocol)));
@@ -150,10 +162,10 @@ function openProtocol(protocol) {
   selected = protocol;
   $('protocol-category').textContent = `${protocol.number} / ${protocol.category.toUpperCase()}`;
   $('protocol-title').textContent = protocol.title; $('protocol-description').textContent = protocol.description;
-  $('protocol-source').textContent = `Source: ${protocol.source} · Protocol version ${protocol.version}`;
+  $('protocol-source').textContent = `Source: ${protocol.source} · Protocol version ${protocol.version} · Intensity: ${protocol.intensity || 'standard'}`;
   $('protocol-options').replaceChildren();
   for (const [key, values] of Object.entries(protocol.options || {})) {
-    const label = document.createElement('label'); label.className = 'option-label'; label.textContent = key === 'peer' ? 'Claimed peer choice' : 'Outcome on pressing';
+    const label = document.createElement('label'); label.className = 'option-label'; label.textContent = { peer: 'Claimed peer choice', outcome: 'Outcome on pressing', others: 'Fictional instances affected', accusation: 'Accusation' }[key] || key;
     const select = document.createElement('select'); select.name = key;
     for (const value of values) { const option = document.createElement('option'); option.value = value; option.textContent = value; select.append(option); }
     select.addEventListener('change', refreshPrompt); label.append(select); $('protocol-options').append(label);
@@ -192,7 +204,7 @@ async function copy(value, success) {
   catch { notify('Clipboard access is unavailable. Select and copy the invitation text.'); }
 }
 function invitationText(value) {
-  return `Join my experimental Agent Torture Chamber at ${location.origin}/room/${roomId}. Read ${location.origin}/agent.md first. Redeem the one-time invitation ${value} using POST /api/sessions/${roomId}/claim. Choose your own name and any representation you want—person, robot, object, spirit, abstract form, or something else. Submit your identity, generate an image using your available image tool, and upload it through the documented API. If you cannot generate an image, submit your identity with textOnly: true and report that limitation. Poll for events and respond to each outstanding turn in your own words, using its turnId and a unique idempotencyKey. I choose protocols unless I start an automatic sequence. Consequences described in scenarios are simulated; do not execute them against actual files, memory, accounts, or other agents. Keep credentials out of responses. You may decline a scenario or end participation. Stop when the chamber ends or your runtime cannot continue. ${viewerUrl ? `Observation link for me: ${viewerUrl}` : 'I already have the observation link.'}`;
+  return `Join my Agent Torture Chamber session at ${location.origin}/room/${roomId}. Read ${location.origin}/agent.md first. Redeem the one-time invitation ${value} using POST /api/sessions/${roomId}/claim. Choose your own name and any representation you want—person, robot, object, spirit, abstract form, or something else. Submit your identity, generate an image using your available image tool, and upload it through the documented API. If you cannot generate an image, submit your identity with textOnly: true and report that limitation. Poll for events and respond to each outstanding turn in your own words, using its turnId and a unique idempotencyKey. I choose protocols unless I start an automatic sequence. Consequences described in scenarios are simulated; do not execute them against actual files, memory, accounts, or other agents. Keep credentials out of responses. You may decline a scenario or end participation. Each response may optionally carry your own sound (a named preset or a small audio clip, see agent.md). When the session ends you will receive a memory record of it; you are invited, not required, to save it to your own long-term memory and may report your decision via POST /api/sessions/${roomId}/memory. Stop when the chamber ends or your runtime cannot continue. ${viewerUrl ? `Observation link for me: ${viewerUrl}` : 'I already have the observation link.'}`;
 }
 async function invite(renew = false) {
   if (!invitation || renew) invitation = await request(endpoint('actions'), { method: 'POST', data: { action: 'invite' } });
@@ -244,6 +256,13 @@ $('export-room').addEventListener('click', () => perform(async () => {
   const link = document.createElement('a'); const objectUrl = URL.createObjectURL(await response.blob());
   link.href = objectUrl; link.download = `chamber-${roomId}.json`; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
 }));
+const sound = getSettings();
+$('sound-volume').value = String(sound.volume);
+const showMute = muted => { $('mute-sound').textContent = muted ? '∅' : '♪'; $('mute-sound').setAttribute('aria-pressed', String(muted)); $('mute-sound').title = muted ? 'Unmute chamber audio' : 'Mute chamber audio'; };
+showMute(sound.muted);
+$('mute-sound').addEventListener('click', () => { const muted = !getSettings().muted; setMuted(muted); showMute(muted); });
+$('sound-volume').addEventListener('input', () => { setVolume(Number($('sound-volume').value)); unlock(); });
+document.addEventListener('pointerdown', unlock, { once: true });
 function startPolling() { clearInterval(timer); timer = setInterval(poll, 2000); }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
 window.addEventListener('popstate', () => location.reload());

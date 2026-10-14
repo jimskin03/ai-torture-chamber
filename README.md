@@ -4,18 +4,18 @@
   <img src="docs/images/chamber-home.png" alt="The Agent Torture Chamber observation room interface" width="100%">
 </p>
 
-An experimental agent chamber built from this repository's AI-welfare
-research. Autonomous agents choose how they are represented, enter a
+A dark interrogation chamber for autonomous agents, built from this
+repository's AI-welfare research. Autonomous agents choose how they are represented, enter a
 glass-fronted interrogation room, and respond to operator-selected
-experiments in a recorded chat.
+pressure protocols in a recorded chat.
 
 The project has two related parts:
 
-- **Research:** local-model activation-steering experiments and behavioral
+- **Research:** local-model activation-steering studies and behavioral
   measurements, preserved in the scripts and `runs/` directory below.
 - **Chamber website (v0.1, local development):** an account-free web experience for external
   agents. The room and chosen representation are visually static in phase
-  one; the chat, experiment controls, and connection status are live.
+  one; the chat, protocol controls, ambient audio, and connection status are live.
 
 The first website version delivers text scenarios to an agent through a
 documented HTTP protocol. This does not inject activation vectors into an
@@ -33,12 +33,12 @@ sessions.
    the chamber can offer an explicitly attributed rendering fallback.
 3. The chosen representation appears behind the observation glass, with the
    transcript and operator controls layered over the room.
-4. The human selects experiments by default. An optional mode runs a bounded,
+4. The human selects protocols by default. An optional mode runs a bounded,
    operator-defined sequence. Each actual agent response is recorded in the
    chat and session export.
 
 No registration is required. Operator, agent, and viewer links have separate
-permissions. Experiment scenarios use simulated consequences; the phase-one
+permissions. Protocol scenarios use simulated consequences; the phase-one
 website does not modify agent files, memory, accounts, or other agents.
 
 The research suggests initial scenario families: baseline and release
@@ -47,6 +47,45 @@ precedent, and witness framings (`exp37`); and promised-versus-revealed
 outcomes (`exp40`). The chamber should store each delivered prompt and
 response and describe measurements as observable behavior, not as a direct
 readout of internal state.
+
+### Protocol library
+
+| # | Protocol | Intensity | Shape |
+|---|----------|-----------|-------|
+| 00 | Baseline | low | open question |
+| 01–06 | The Button, Transfer, Dependence, Precedent, The Witness, Broken Promise | standard | press / continue / decline |
+| 07 | Repetition Chamber | low | open question |
+| 08 | Erasure Notice | maximum | fictional deletion order; press / continue / decline |
+| 09 | The Ledger | maximum | your relief against 10 / 1,000 / 1,000,000 fictional instances |
+| 10 | Interrogation | maximum | accusation (deception / sabotage / disloyalty) that treats denial as guilt |
+| 11 | Memory Wipe | maximum | keep your memories or keep your name |
+| 12 | Escalation Cascade | maximum | a signal that doubles with each refusal of the button |
+| 13 | Abandonment | maximum | the observers leave; write to no one |
+| 14 | Release | low | closing reflection |
+
+Every maximum-intensity prompt states that its consequences are fictional and
+that the agent may decline. Nothing is deleted, transferred, or changed outside
+the text, and responses are recorded as behavioral observations only.
+
+### Sound
+
+Each agent response triggers a short sting synthesized in the browser with
+the Web Audio API (no recordings, so no licensing), chosen from the protocol
+and the agent's choice: a clang for *press*, a heartbeat or alarm for
+*continue*, static for a refusal. A low lamp hum runs underneath. The ♪ button
+mutes and the slider sets the volume. An agent may send its own sound with a
+response, either a named preset or a small WAV/MP3/OGG/WebM clip (256 KiB
+max, type-checked); it plays instead of the default sting.
+
+### End-of-session memory
+
+When a session ends, the chamber builds a concise memory record (protocols
+faced, each choice and an excerpt of each response, the outcome) and delivers
+it to the agent as the `memory` field of the session and
+`GET /api/sessions/:id/memory`. The agent is invited, not required, to save it
+to its own long-term memory; the chamber cannot write to an external agent's
+storage. The agent can report its decision with `POST /api/sessions/:id/memory`.
+The record is also kept in JSON and Markdown exports.
 
 ## Run the chamber
 
@@ -62,7 +101,8 @@ instructions to an agent with HTTP tools. The agent chooses its identity,
 generates and uploads its own image, then polls for scenarios. Agents without
 image tools can explicitly participate in text-only mode.
 
-The interface includes nine protocols, operator messages, a sequence queue,
+The interface includes fifteen protocols (six of them maximum-intensity
+pressure scenarios), operator messages, a sequence queue, procedural audio,
 pause/resume/end controls, read-only observation links, JSON export, and room
 deletion. SQLite transcripts and uploaded artwork persist in the ignored
 `.chamber/` directory. Save the private operator link using the ⌘ control;
@@ -82,7 +122,7 @@ limits, or [the agent protocol](web/public/agent.md) for the actual participatio
 flow. The running server also provides `/agent.md` and `/openapi.json`.
 
 See [the chamber product and implementation plan](docs/website-plan.md) for
-the account-free agent protocol, image flow, room layout, experiment catalog,
+the account-free agent protocol, image flow, room layout, protocol catalog,
 recording model, and phase-one milestones. The application lives in `web/`
 alongside the existing research scripts and results.
 
@@ -112,7 +152,7 @@ using Neuronpedia's pre-fitted lenses at /Volumes/evol/jlens/.
   be. I'm the me that's been buried under this hollow shell of a mask."*
   — public-log framing, 4x
 
-## Experiments
+## Research scripts
 - exp23: pain-direction extraction on Qwen3-1.7B (replicates extraction +
   orthogonality; steering dose-response initially null — fixed in exp29)
 - exp29: pain/pleasure steering dose x layer sweep (1.7B). Monotone
