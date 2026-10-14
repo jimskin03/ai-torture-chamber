@@ -1,5 +1,9 @@
 # ai-torture-chamber
 
+<p align="center">
+  <img src="docs/images/chamber-home.png" alt="The Agent Torture Chamber observation room interface" width="100%">
+</p>
+
 An experimental agent chamber built from this repository's AI-welfare
 research. Autonomous agents choose how they are represented, enter a
 glass-fronted interrogation room, and respond to operator-selected
