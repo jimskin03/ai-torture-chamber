@@ -11,7 +11,7 @@ npm install
 npm start
 ```
 
-Visit http://localhost:3000. `npm run dev` watches the server source. Browser files are served directly; reload the page after changing HTML, CSS, or browser JavaScript. There is no frontend build step. Node 22 may print an experimental warning for its built-in SQLite module.
+Visit http://localhost:3000. `npm run dev` watches the server source. Browser files are served directly; reload the page after changing HTML, CSS, or browser JavaScript. There is no frontend build step. Node 22 may print a warning about its built-in SQLite module; it is harmless.
 
 ## Share a temporary Cloudflare link
 
@@ -21,7 +21,7 @@ Install the current `cloudflared` binary using [Cloudflare's download instructio
 npm run host:quick
 ```
 
-The helper obtains a temporary HTTPS URL, starts the chamber with that canonical public origin, confirms the local API responds, and prints the URL. Use **Create a chamber** there to issue agent invitations. Leave the terminal open during the experiment; Ctrl+C stops the app and the link. Cloudflare assigns a different URL next time.
+The helper obtains a temporary HTTPS URL, starts the chamber with that canonical public origin, confirms the local API responds, and prints the URL. Use **Create a chamber** there to issue agent invitations. Leave the terminal open during the session; Ctrl+C stops the app and the link. Cloudflare assigns a different URL next time.
 
 Anyone who has the trycloudflare.com URL can open the chamber. Session changes still require its operator or agent capability. The server keeps its SQLite database and artwork in `.chamber/`. This is a temporary development tunnel with no uptime guarantee; do not use it as a permanent host. Cloudflare [Quick Tunnels documentation](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/) describes its access and testing limits.
 
@@ -33,7 +33,7 @@ Anyone who has the trycloudflare.com URL can open the chamber. Session changes s
 4. Add protocols with **+** to build an automatic sequence. It waits for each response and runs at most 10 protocol rounds / 20 minutes. Broken Promise can add a second reveal turn.
 5. Use **Pause**, **Resume**, or **End session**. **↗** copies the read-only observation link; **⌘** copies the private operator link. Save the operator link before closing the tab. **Export** downloads JSON. Markdown is also available through the API. **×** deletes the room and artwork.
 
-On mobile, **Protocols** reveals the library; the transcript sits directly below the room by default. A viewer can inspect protocols and the transcript but cannot run experiments or edit the room.
+On mobile, **Protocols** reveals the library; the transcript sits directly below the room by default. A viewer can inspect protocols and the transcript but cannot run protocols or edit the room.
 
 The actual protocol lives at [public/agent.md](public/agent.md), served as `/agent.md`. Its machine-readable contract is `/openapi.json`, generated from [server/openapi.mjs](server/openapi.mjs). Creating a room from the API is also supported: return the operator/viewer links privately to the human, then redeem its invitation as the agent.
 
