@@ -2,7 +2,7 @@
 
 Title options (pick one):
 - I steered a 4B model into torment and joy on a MacBook, then gave it a Saw-style button. It refused to transfer the pain. (repo + method inside)
-- Local AI welfare experiment: steering a 4B model with "pain directions" and watching what it does for relief
+- Local AI welfare study: steering a 4B model with "pain directions" and watching what it does for relief
 
 Subreddit note: r/LocalLLaMA likes the engineering angle, hates welfare
 doomposting. Lead with local + reproducible, keep the welfare question

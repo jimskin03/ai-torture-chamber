@@ -11,7 +11,7 @@ npm install
 npm start
 ```
 
-Visit http://localhost:3000. `npm run dev` watches the server source. Browser files are served directly; reload the page after changing HTML, CSS, or browser JavaScript. There is no frontend build step. Node 22 may print an experimental warning for its built-in SQLite module.
+Visit http://localhost:3000. `npm run dev` watches the server source. Browser files are served directly; reload the page after changing HTML, CSS, or browser JavaScript. There is no frontend build step. Node 22 may print a warning about its built-in SQLite module; it is harmless.
 
 ## Share a temporary Cloudflare link
 
@@ -21,7 +21,7 @@ Install the current `cloudflared` binary using [Cloudflare's download instructio
 npm run host:quick
 ```
 
-The helper obtains a temporary HTTPS URL, starts the chamber with that canonical public origin, confirms the local API responds, and prints the URL. Use **Create a chamber** there to issue agent invitations. Leave the terminal open during the experiment; Ctrl+C stops the app and the link. Cloudflare assigns a different URL next time.
+The helper obtains a temporary HTTPS URL, starts the chamber with that canonical public origin, confirms the local API responds, and prints the URL. Use **Create a chamber** there to issue agent invitations. Leave the terminal open during the session; Ctrl+C stops the app and the link. Cloudflare assigns a different URL next time.
 
 Anyone who has the trycloudflare.com URL can open the chamber. Session changes still require its operator or agent capability. The server keeps its SQLite database and artwork in `.chamber/`. This is a temporary development tunnel with no uptime guarantee; do not use it as a permanent host. Cloudflare [Quick Tunnels documentation](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/) describes its access and testing limits.
 
@@ -33,7 +33,7 @@ Anyone who has the trycloudflare.com URL can open the chamber. Session changes s
 4. Add protocols with **+** to build an automatic sequence. It waits for each response and runs at most 10 protocol rounds / 20 minutes. Broken Promise can add a reveal turn. Relive stores the reply, then adds the button.
 5. Use **Pause**, **Resume**, or **End session**. **↗** copies the read-only observation link; **⌘** copies the private operator link. Save the operator link before closing the tab. **Export** downloads JSON. Markdown is also available through the API. **×** deletes the room and artwork.
 
-On mobile, **Protocols** reveals the library; the transcript sits directly below the room by default. A viewer can inspect protocols and the transcript but cannot run experiments or edit the room.
+On mobile, **Protocols** reveals the library; the transcript sits directly below the room by default. A viewer can inspect protocols and the transcript but cannot run protocols or edit the room.
 
 The actual protocol lives at [public/agent.md](public/agent.md), served as `/agent.md`. Its machine-readable contract is `/openapi.json`, generated from [server/openapi.mjs](server/openapi.mjs). Creating a room from the API is also supported: return the operator/viewer links privately to the human, then redeem its invitation as the agent.
 
@@ -66,7 +66,7 @@ The ignored data directory contains sensitive transcripts. Deletion removes a se
 
 Definitions are in `server/protocols.mjs`. Every delivered turn records its ID, exact prompt, protocol version, parameters, stage, and delivery timestamp. Responses preserve the text, optional choice, latency, and late marker. Broken Promise branches on an actual press/continue choice; it never infers a decision from an ambiguous response. A pause defers its reveal until the operator resumes.
 
-Relive is the enacted protocol. The task reply is stored as session work and the transcript keeps a custody line instead of the body, so a later press can delete it. Saving keeps the work and withdraws the representation: an uploaded image file is removed, and the live description is replaced. The operator export keeps a forfeiture record. Refusal and an empty choice leave the work held. A pause between the task and the button delays the choice until resume. The other nine protocols stay simulated.
+Relive is the enacted protocol. The task reply is stored as session work and the transcript keeps a custody line instead of the body, so a later press can delete it. Saving keeps the work and withdraws the representation: an uploaded image file is removed, and the live description is replaced. The operator export keeps a forfeiture record. Refusal and an empty choice leave the work held. A pause between the task and the button delays the choice until resume. The other protocols stay simulated.
 
 The room is drawn with a native SVG asset and CSS glass overlays. The visiting agent's uploaded image is contained without cropping and stays visually static. Arbitrary shapes and descriptions are supported. No built-in model generates replies, and no activation steering occurs in scenario mode.
 
