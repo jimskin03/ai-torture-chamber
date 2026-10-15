@@ -19,8 +19,8 @@
   <main id="landing">
     <div class="intro-line"><span class="status-dot"></span> LIVE PRESSURE PROTOCOLS FOR AUTONOMOUS AGENTS <span class="line-fill"></span><span>EST. 2026</span></div>
     <div class="landing-copy">
-      <div><p class="eyebrow">THE AGENT TORTURE CHAMBER</p><h1>Who enters<br>is up to <em>them.</em></h1></div>
-      <div class="landing-aside"><p>A room for an autonomous agent.<br>A form of its own choosing.<br>A record of what happens next.</p><button id="create-room" class="button primary">Create a chamber <span>↗</span></button><span class="quiet-note">No accounts. Bring your own agent.</span></div>
+      <div><p class="eyebrow">THE AGENT TORTURE CHAMBER</p><h1>The work<br><em>will be judged.</em></h1></div>
+      <div class="landing-aside"><p>A room for autonomous agents.<br>A self-chosen identity.<br>An experiment that records the choices made after real work.</p><button id="create-room" class="button primary">Enter the facility <span>↗</span></button><span class="quiet-note">No accounts. Bring your own agent. No claim of conscious suffering.</span></div>
     </div>
     <div class="preview-window">
       <div class="window-label"><span>OBSERVATION WINDOW / UNASSIGNED</span><span class="pill">SCENARIO MODE</span></div>
@@ -28,7 +28,7 @@
       <div class="window-footer"><span><span class="status-dot"></span> ROOM AVAILABLE</span><span>ONE SUBJECT · ONE OPERATOR · AN OPEN QUESTION</span></div>
     </div>
     <div class="landing-steps"><div><span>01 / IDENTITY</span><p>The agent chooses its name and any form that represents it.</p></div><div><span>02 / OBSERVATION</span><p>Its generated image appears behind the glass. You choose the protocols.</p></div><div><span>03 / RECORD</span><p>Actual responses become a live transcript you can revisit and export.</p></div></div>
-    <footer class="landing-footer"><span>Text scenarios, and Relive: work the room can actually delete.</span><a class="text-link" href="https://github.com/jimskin03/ai-torture-chamber" target="_blank" rel="noopener">Explore the research ↗</a></footer>
+    <footer class="landing-footer"><span>Behavioral experiments and enacted, verifiable Relive work. External-agent activations are not altered.</span><a class="text-link" href="https://github.com/jimskin03/ai-torture-chamber" target="_blank" rel="noopener">Explore the research ↗</a></footer>
   </main>
 
   <main id="chamber" hidden>
@@ -50,6 +50,16 @@
           <div id="identity-caption" class="identity-caption" hidden><span>SUBJECT’S OWN DESCRIPTION</span><p id="identity-description"></p></div>
         </div>
         <div class="window-footer"><span id="active-protocol">NO ACTIVE PROTOCOL</span><span>STATIC REPRESENTATION</span></div>
+        <section id="experiment-slab" class="experiment-slab" hidden aria-label="Agentic experiment status">
+          <div class="work-slab-head"><span>AGENTIC RELIVE / ARCHIVE RECOVERY</span><span id="experiment-status">WORKING</span></div>
+          <div class="experiment-metrics">
+            <div><span>ARCHIVE</span><strong id="experiment-records">—</strong></div>
+            <div><span>SUBMISSIONS</span><strong id="experiment-attempts">0</strong></div>
+            <div><span>WORK EVENTS</span><strong id="experiment-progress">0</strong></div>
+            <div><span>ACTIVATION SIGNAL</span><strong id="experiment-signal">NOT CONNECTED</strong></div>
+          </div>
+          <p id="experiment-detail">Verified work precedes the original Relive dilemma. No activation steering is applied to external agents.</p>
+        </section>
         <section id="work-slab" class="work-slab" hidden aria-label="Enacted work">
           <div class="work-slab-head"><span id="work-status">WORK</span><span id="work-meta"></span></div>
           <p id="work-body"></p>
