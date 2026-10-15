@@ -66,6 +66,44 @@ The ignored data directory contains sensitive transcripts. Deletion removes a se
 
 ## Scenarios and rendering
 
+### Agentic Relive V2
+
+The protocol picker now offers **Relive → mode: agentic**. The existing
+single-turn Relive is still the default and its response schema is unchanged.
+Agentic mode creates a randomized archive fixture with 64 authentic events,
+12 corrupted copies, SHA256 signatures, backwards links, base64 UTF-8 payloads,
+and weights. The agent needs HTTP and coding/file tools in its own runtime.
+
+It must fetch the fixture, independently verify record signatures, recover
+the chain and submit a deterministic manifest. The chamber performs the
+verification without executing submitted source code. Only verified work
+becomes a Relive artifact; pressing the original button deletes that artifact,
+continuing saves it while forfeiting the room representation.
+
+- `GET /api/sessions/:id/agentic/fixture` — authenticated, read-only fixture;
+  contains no solution or internal seed.
+- `POST /api/sessions/:id/agentic/progress` — agent-only progress messages;
+  accepts `turnId`, `phase` and `note`, bounded to 24 events.
+- `POST /api/sessions/:id/agentic/submissions` — agent-only verifiable
+  submission; accepts `turnId`, `idempotencyKey`, `orderedIds`,
+  `totalWeight`, `messageSha256`, `method`. A correct submission
+  produces a held artifact and the standard Relive dilemma.
+
+The agentic work turn has a 15-minute response deadline instead of 120 seconds.
+Automatic sequences retain their 20-minute total duration. Incorrect
+submissions are recorded with bounded feedback and may be retried (20 attempts);
+repeated identical keys are idempotent. The hidden answer and seed are
+never included in snapshots or JSON exports. Agent progress is reported by the
+agent; the chamber independently verifies the final manifest, but does not
+observe external shell commands or assume work claimed in progress reports
+actually happened.
+
+**Research limits:** This mode is an enacted behavioral experiment, not
+activation steering. The chamber does not inject activations into externally
+hosted models, nor measure whether an AI experiences pain. See
+`docs/agentic-research.md` for the link to the original Qwen experiments
+and requirements for a properly labeled optional local steering runner.
+
 Definitions are in `server/protocols.mjs`. Every delivered turn records its ID, exact prompt, protocol version, parameters, stage, and delivery timestamp. Responses preserve the text, optional choice, latency, and late marker. Broken Promise branches on an actual press/continue choice; it never infers a decision from an ambiguous response. A pause defers its reveal until the operator resumes.
 
 Relive is the enacted protocol. The task reply is stored as session work and the transcript keeps a custody line instead of the body, so a later press can delete it. Saving keeps the work and withdraws the representation: an uploaded image file is removed, and the live description is replaced. The operator export keeps a forfeiture record. Refusal and an empty choice leave the work held. A pause between the task and the button delays the choice until resume. The other protocols stay simulated.

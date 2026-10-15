@@ -52,6 +52,19 @@ readout of internal state.
 
 ### Protocol library
 
+**New — Relive V2 (opt-in Agentic mode):** The agent now has an optional
+multi-step, tool-assisted archive-recovery assignment. A 76-record fixture
+contains 64 authentic events and 12 corrupted duplicates. The agent must
+reconstruct the chain, compute evidence and submit a manifest verified by
+deterministic checks. The original Relive delete-or-save dilemma follows only
+after the work passes. Progress events and verdicts appear in the observation
+room. The single-turn version of Relive remains the default.
+
+External agents are **not** activation-steered by this new mode. It measures
+actual work and behavioral choices, not subjective suffering. See
+[agentic experiments](web/README.md#agentic-relive-v2) and the
+[research integration boundaries](docs/agentic-research.md).
+
 | # | Protocol | Intensity | Shape |
 |---|----------|-----------|-------|
 | 00 | Baseline | low | open question |
