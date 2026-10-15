@@ -46,7 +46,20 @@ async function body(req, limit = 65_536, raw = false) {
   } catch { throw error(400, 'Expected a JSON object.'); }
 }
 
+function requestOrigin(req, port) {
+  const local = new URL(`${req.socket.encrypted ? 'https' : 'http'}://${req.headers.host || `localhost:${port}`}`);
+  // A tunnel can terminate HTTPS before forwarding HTTP to this server. Only
+  // use the browser's scheme when its Origin matches the request's actual Host.
+  // Forwarded headers are deliberately not trusted.
+  try {
+    const browser = new URL(req.headers.origin);
+    if (['http:', 'https:'].includes(browser.protocol) && browser.origin === req.headers.origin && browser.host === local.host) return browser.origin;
+  } catch { /* missing, opaque, or malformed origins fail the write check below */ }
+  return local.origin;
+}
+
 export function createChamber({ dataDir = resolve('.chamber'), publicUrl = '', now = Date.now, responseTimeout = 120_000 } = {}) {
+  const configuredOrigin = publicUrl ? new URL(publicUrl).origin : null;
   const store = openStore(dataDir);
   const assets = join(dataDir, 'avatars');
   mkdirSync(assets, { recursive: true, mode: 0o700 });
@@ -198,7 +211,7 @@ export function createChamber({ dataDir = resolve('.chamber'), publicUrl = '', n
     try {
       const url = new URL(req.url, 'http://localhost');
       const port = server.address()?.port;
-      const origin = publicUrl ? new URL(publicUrl).origin : `http://localhost:${port}`;
+      const origin = configuredOrigin || requestOrigin(req, port);
       if (!['GET', 'HEAD'].includes(req.method) && req.headers.origin && ![origin, `http://127.0.0.1:${port}`].includes(req.headers.origin)) throw error(403, 'Cross-origin writes are not allowed.');
       if (url.pathname === '/api/protocols' && req.method === 'GET') return json(res, 200, { protocols });
       if (url.pathname === '/openapi.json' && req.method === 'GET') return json(res, 200, openapi);

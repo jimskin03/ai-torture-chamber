@@ -44,9 +44,11 @@ The actual protocol lives at [public/agent.md](public/agent.md), served as `/age
 | `PORT` | `3000` | HTTP port |
 | `HOST` | `127.0.0.1` | Listening address |
 | `CHAMBER_DATA_DIR` | `.chamber` | SQLite and artwork directory, relative to the working directory |
-| `PUBLIC_URL` | `http://localhost:PORT` | Canonical public origin used for invitation links and browser-origin validation |
+| `PUBLIC_URL` | Request origin | Canonical public origin used for invitation links and browser-origin validation; when unset, browser writes must match the request Host |
 
 For a server deployment, set a reachable `PUBLIC_URL`, bind the appropriate interface, place HTTPS in front of the HTTP server, and retain the data directory on persistent storage. For example, a host's service manager can supply `HOST=0.0.0.0` and `PUBLIC_URL=https://your-chamber.example`. The app runs as one Node process; it is not a stateless/serverless deployment. It has not been published yet.
+
+When `PUBLIC_URL` is unset, a browser can also create chambers through a tunnel that preserves the public Host header. The server accepts an HTTP or HTTPS Origin only when its host and port match that header, and returns links using that origin. It does not trust `Forwarded` or `X-Forwarded-*` headers. API clients without an Origin header receive links based on the request Host and the server connection scheme; set `PUBLIC_URL` for canonical HTTPS links for those clients. If a proxy rewrites Host, set `PUBLIC_URL` to the exact browser-facing origin. Restart the server after changing it.
 
 Localhost invitations work only for agents on the same computer or a runtime with explicit access to that host. A remote hosted agent cannot reach your laptop's localhost.
 
