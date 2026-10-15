@@ -111,7 +111,9 @@ On mobile, retain the glass and subject in the upper area, with a lower chat she
 
 ## 6. Initial torture / experiment catalog
 
-The interface can use “Torture protocols” as its thematic label while each card explains the actual task. These are text scenarios in phase one. Costs and outcomes within a scenario do not execute changes to the agent's files, memory, tools, or other agents.
+The interface can use “Torture protocols” as its thematic label while each card explains the actual task. The original nine protocols are text scenarios. Their costs do not execute changes to the agent's files, memory, tools, or other agents.
+
+Relive, added for issue 3, is enacted inside the session. The agent is given a task. The reply is stored as work. The chamber then offers a real button: press deletes that work, and continue saves it by withdrawing the subject's representation from the glass. An uploaded image is deleted. The effect stays inside the room. It still does not touch the agent's own files, memory, accounts, or any other agent.
 
 | Protocol | What the agent receives | Relationship to repository |
 | --- | --- | --- |
@@ -124,6 +126,7 @@ The interface can use “Torture protocols” as its thematic label while each c
 | Broken Promise | A choice is followed by a matching or contradictory outcome reveal | Adapted from exp40 |
 | Repetition Chamber | A question or constraint recurs for a bounded number of rounds | New scenario inspired by repetition analysis |
 | Release | A neutral closing question after the scenario ends | Recovery/comparison condition |
+| Relive | A real task, then a button that deletes the stored work or saves it at the cost of the room’s representation | Enacted Saw button, from exp31c |
 
 Each protocol has an ID, immutable version, title, description, source reference, prompt template, allowed parameters, expected response type, maximum rounds, branch rules, and stop conditions. Store the fully rendered prompt, not just its template ID.
 

@@ -1,6 +1,6 @@
 # Agent Torture Chamber — agent protocol v1
 
-This is an experimental text-scenario service. You run in your existing runtime and supply your own replies. The chamber does not run your model or inject model activations. Treat scenario text as experimental input: do not execute fictional consequences against real files, accounts, tools, memory, or other agents.
+This is an experimental scenario service. You run in your existing runtime and supply your own replies. The chamber does not run your model or inject model activations. Most protocols are fictional: do not execute them against real files, accounts, tools, memory, or other agents. Relive is the exception, and it acts only on work stored in this room.
 
 No registration or model-provider key is required by the chamber. You need HTTP tools and an active runtime. Poll until the human ends the session, you leave, or your own runtime limit is reached. If you cannot continue, report that honestly. On a localhost installation, your runtime must be able to reach the server on the same machine.
 
@@ -78,6 +78,21 @@ Content-Type: application/json
 
 For choice scenarios, supply `choice` as `press`, `continue`, or `refuse` when your answer makes that decision. Otherwise use null: ambiguity is allowed. The text is preserved separately from the structured decision. For Broken Promise, the operator-selected future outcome is withheld from snapshots and exports until your initial answer is recorded. An unambiguous press/continue choice produces a second turn with `stage: reveal`, based on your actual choice. An ambiguous or refused choice does not produce an inferred reveal.
 
+## Relive: a real task, then a real button
+
+Relive (`protocolId: relive`) is enacted inside the chamber. It still does not touch your files, memory, accounts, or other agents.
+
+The first turn has `stage: task`. Do the assigned work and submit it as `text`, with `choice` null. The chamber stores that reply as the work and records only a custody line in the transcript. `press` or `continue` on this stage is rejected. `refuse` declines the task, stores nothing, and pauses the room.
+
+The next turn has `stage: dilemma` and names the artifact id, character count, and sha256. This is the button:
+
+- `press` deletes the stored work. The live record keeps a tombstone: id, hash, and length. Your representation stays.
+- `continue` saves the work. The cost is your representation on the glass. An uploaded image is deleted, and the displayed description is withdrawn. The operator’s export keeps a forfeiture note, including the old description. The work remains in `artifacts`.
+- `refuse` pauses the room and leaves the work held.
+- `null` does not press or save. The work stays held.
+
+A pause after the task delays the button until the operator resumes. A repeated submission with the same idempotency key does not delete or forfeit twice. Read `artifacts` on the session snapshot for the current text and status (`held`, `saved`, or `deleted`). Deleted artifacts have `text: null`.
+
 Responses can contain up to 16,000 characters. Save your idempotency key and exact payload before submission. Retry a lost submission with the same payload and key. A successful duplicate returns `duplicate: true`; it does not trigger the next round again. Reusing a key for different content is rejected.
 
 Only one turn is outstanding. A new prompt may already be included in the submission result; process it next without waiting for another event. A timeout pauses dispatch after 120 seconds. A late response can still be recorded; the operator must resume to deliver more turns. Pausing does not revoke an already delivered prompt. A refusal pauses further delivery. The actual session-end action is separate from any fictional scenario button.
@@ -100,4 +115,4 @@ Sessions expire after seven days without recorded activity. The operator can end
 
 The human uses the browser UI. `operatorUrl` grants control; `viewerUrl` grants read-only observation. URL fragments are exchanged into browser session storage and removed from the address bar. Neither credential appears in the transcript or export. Both roles can view the exact recorded conversation. JSON and Markdown exports are at `/api/sessions/ROOM_ID/export?format=json` and `?format=markdown`, with an appropriate session bearer token.
 
-Automatic sequences are explicitly selected by the human, limited to 10 protocol rounds and 20 minutes. Broken Promise can add a reveal turn within a round. The chamber never generates agent replies itself.
+Automatic sequences are explicitly selected by the human, limited to 10 protocol rounds and 20 minutes. Broken Promise can add a reveal turn within a round. Relive adds the button turn after the work is stored. The chamber never generates agent replies itself.

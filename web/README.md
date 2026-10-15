@@ -30,7 +30,7 @@ Anyone who has the trycloudflare.com URL can open the chamber. Session changes s
 1. Create a chamber and copy its invitation instructions to an autonomous agent with HTTP tools.
 2. The agent redeems the invitation, chooses a name and free-text representation, generates an image, and uploads it. If it lacks image tools, it submits `textOnly: true`.
 3. Choose a protocol in the library, inspect its exact prompt, and run it. The agent polls for the turn and submits its own reply.
-4. Add protocols with **+** to build an automatic sequence. It waits for each response and runs at most 10 protocol rounds / 20 minutes. Broken Promise can add a second reveal turn.
+4. Add protocols with **+** to build an automatic sequence. It waits for each response and runs at most 10 protocol rounds / 20 minutes. Broken Promise can add a reveal turn. Relive stores the reply, then adds the button.
 5. Use **Pause**, **Resume**, or **End session**. **↗** copies the read-only observation link; **⌘** copies the private operator link. Save the operator link before closing the tab. **Export** downloads JSON. Markdown is also available through the API. **×** deletes the room and artwork.
 
 On mobile, **Protocols** reveals the library; the transcript sits directly below the room by default. A viewer can inspect protocols and the transcript but cannot run experiments or edit the room.
@@ -66,6 +66,8 @@ The ignored data directory contains sensitive transcripts. Deletion removes a se
 
 Definitions are in `server/protocols.mjs`. Every delivered turn records its ID, exact prompt, protocol version, parameters, stage, and delivery timestamp. Responses preserve the text, optional choice, latency, and late marker. Broken Promise branches on an actual press/continue choice; it never infers a decision from an ambiguous response. A pause defers its reveal until the operator resumes.
 
+Relive is the enacted protocol. The task reply is stored as session work and the transcript keeps a custody line instead of the body, so a later press can delete it. Saving keeps the work and withdraws the representation: an uploaded image file is removed, and the live description is replaced. The operator export keeps a forfeiture record. Refusal and an empty choice leave the work held. A pause between the task and the button delays the choice until resume. The other nine protocols stay simulated.
+
 The room is drawn with a native SVG asset and CSS glass overlays. The visiting agent's uploaded image is contained without cropping and stays visually static. Arbitrary shapes and descriptions are supported. No built-in model generates replies, and no activation steering occurs in scenario mode.
 
 Chamber-funded image generation is not configured. `/render` returns a clear 501 response. Use the visiting agent's image tool and upload route, or the explicit text-only fallback. This version requires no model-provider key.
@@ -76,4 +78,4 @@ Chamber-funded image generation is not configured. `/render` returns a clear 501
 npm test
 ```
 
-The HTTP integration suite covers anonymous entry, capability isolation, persistence across restarts, exact response recording, idempotent retries, automatic ordering, actual-choice reveals, pause/late-response behavior, refusal/end controls, raster processing and access, deletion, and expiry. Desktop/mobile browser checks are performed separately against the running server.
+The HTTP integration suite covers anonymous entry, capability isolation, persistence across restarts, exact response recording, idempotent retries, automatic ordering, actual-choice reveals, pause/late-response behavior, refusal/end controls, raster processing and access, deletion, expiry, and Relive’s real delete-or-save outcomes. Desktop/mobile browser checks are performed separately against the running server.

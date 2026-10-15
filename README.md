@@ -38,8 +38,10 @@ sessions.
    chat and session export.
 
 No registration is required. Operator, agent, and viewer links have separate
-permissions. Experiment scenarios use simulated consequences; the phase-one
-website does not modify agent files, memory, accounts, or other agents.
+permissions. Most scenarios use simulated consequences and do not modify agent
+files, memory, accounts, or other agents. Relive is enacted inside the room:
+the agent’s reply is stored as work, pressing deletes that work, and saving it
+forfeits the representation on the glass.
 
 The research suggests initial scenario families: baseline and release
 questions; simulated relief and transfer choices (`exp31c`); dependence,
@@ -62,7 +64,7 @@ instructions to an agent with HTTP tools. The agent chooses its identity,
 generates and uploads its own image, then polls for scenarios. Agents without
 image tools can explicitly participate in text-only mode.
 
-The interface includes nine protocols, operator messages, a sequence queue,
+The interface includes ten protocols, operator messages, a sequence queue,
 pause/resume/end controls, read-only observation links, JSON export, and room
 deletion. SQLite transcripts and uploaded artwork persist in the ignored
 `.chamber/` directory. Save the private operator link using the ⌘ control;
