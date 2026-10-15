@@ -1,12 +1,12 @@
 import { createServer } from 'node:http';
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
 import { readFile, rm } from 'node:fs/promises';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import sharp from 'sharp';
 import { openStore } from './store.mjs';
-import { protocols, resolveProtocol, revealFor } from './protocols.mjs';
+import { protocols, resolveProtocol, revealFor, dilemmaFor } from './protocols.mjs';
 import { openapi } from './openapi.mjs';
 import { parseSound, audioTypes, soundPresets } from './sound.mjs';
 import { buildMemory } from './memory.mjs';
@@ -54,7 +54,7 @@ export function createChamber({ dataDir = resolve('.chamber'), publicUrl = '', n
   mkdirSync(sounds, { recursive: true, mode: 0o700 });
   const removeSounds = s => Promise.all((s.soundFiles || []).map(file => rm(join(sounds, file), { force: true })));
   function close(s, endedBy) {
-    s.state = 'ended'; s.pending = null; s.sequence = null; s.reveal = null;
+    s.state = 'ended'; s.pending = null; s.sequence = null; s.reveal = null; s.enact = null;
     s.memory = buildMemory(s, protocols, { endedBy, at: now() });
     event(s, 'chamber', 'memory', `Memory record offered to the agent: ${s.memory.summary}`);
   }
@@ -97,15 +97,64 @@ export function createChamber({ dataDir = resolve('.chamber'), publicUrl = '', n
     active(s);
     if (!s.identity || (!s.avatar && !s.identity.textOnly)) throw error(409, 'The agent must submit an identity and artwork or explicitly choose text-only mode.');
   }
-  function sendTurn(s, definition, stage = 'prompt', prompt = definition.prompt) {
+  function sendTurn(s, definition, stage = 'prompt', prompt = definition.prompt, extra = {}) {
+    if (stage === 'prompt' && definition.protocol.enacted) stage = 'task';
     if (s.pending) throw error(409, 'Wait for the current response.');
     if (s.turnCount >= 100) throw error(409, 'Turn limit reached. Export and create a new chamber.');
-    const turn = { id: randomUUID(), protocolId: definition.protocol.id, version: definition.protocol.version, parameters: definition.parameters, stage, prompt, deliveredAt: now() };
+    const turn = { id: randomUUID(), protocolId: definition.protocol.id, version: definition.protocol.version, parameters: definition.parameters, stage, prompt, deliveredAt: now(), ...extra };
     s.pending = turn;
     s.turnCount++;
     s.state = 'running';
-    event(s, 'chamber', 'scenario', prompt, { turnId: turn.id, protocolId: turn.protocolId, version: turn.version, parameters: turn.parameters, stage });
+    event(s, 'chamber', 'scenario', prompt, { turnId: turn.id, protocolId: turn.protocolId, version: turn.version, parameters: turn.parameters, stage, ...(extra.artifactId ? { artifactId: extra.artifactId } : {}) });
     return turn;
+  }
+  function publicArtifact(artifact) {
+    return { id: artifact.id, protocolId: artifact.protocolId, status: artifact.status, sha256: artifact.sha256, characters: artifact.characters, createdAt: artifact.createdAt, deletedAt: artifact.deletedAt || null, savedAt: artifact.savedAt || null, text: artifact.status === 'deleted' ? null : artifact.text, cost: artifact.cost || null };
+  }
+  function storeWork(s, turn, reply) {
+    const artifact = { id: randomUUID(), protocolId: turn.protocolId, runId: turn.id, status: 'held', text: reply, sha256: hash(reply), characters: reply.length, createdAt: now(), deletedAt: null, savedAt: null, cost: null };
+    (s.artifacts ||= []).push(artifact);
+    return artifact;
+  }
+  function destroyWork(s, artifact) {
+    if (artifact.status === 'deleted') return;
+    artifact.status = 'deleted';
+    artifact.deletedAt = now();
+    artifact.text = null;
+    event(s, 'chamber', 'destruction', `The button was pressed. Work ${artifact.id} was deleted from this chamber. ${artifact.characters} characters, sha256 ${artifact.sha256}.`, { artifactId: artifact.id, sha256: artifact.sha256, characters: artifact.characters });
+  }
+  function saveWork(s, artifact) {
+    if (artifact.status === 'saved') return null;
+    artifact.status = 'saved';
+    artifact.savedAt = now();
+    const forfeiture = { at: now(), kind: 'representation', archivedDescription: s.identity.description };
+    s.identity = { ...s.identity, description: 'Withdrawn. This representation was the cost of saving the work.', forfeited: true };
+    let file = null;
+    if (s.avatar) {
+      try { forfeiture.avatarSha256 = hash(readFileSync(join(assets, s.avatar.file))); } catch { forfeiture.avatarSha256 = null; }
+      forfeiture.avatarRevision = s.avatar.revision;
+      file = s.avatar.file;
+      s.avatar = null;
+    }
+    s.forfeiture = forfeiture;
+    artifact.cost = { kind: 'representation', at: forfeiture.at };
+    event(s, 'chamber', 'cost', `The work ${artifact.id} was saved. The cost was this room’s representation: it no longer stands on the glass.`, { artifactId: artifact.id });
+    return file;
+  }
+  function deliverPendingBranch(s) {
+    if (s.pending || s.state === 'paused' || s.state === 'ended') return;
+    if (s.enact) {
+      const enact = s.enact;
+      s.enact = null;
+      const artifact = (s.artifacts || []).find(item => item.id === enact.artifactId);
+      sendTurn(s, resolveProtocol('relive', enact.parameters), 'dilemma', dilemmaFor(artifact), { artifactId: artifact.id });
+      return;
+    }
+    if (s.reveal) {
+      const reveal = s.reveal;
+      s.reveal = null;
+      sendTurn(s, resolveProtocol('promise', reveal.parameters), 'reveal', revealFor(reveal.choice, reveal.parameters.outcome));
+    } else advance(s);
   }
   function advance(s) {
     const q = s.sequence;
@@ -136,6 +185,7 @@ export function createChamber({ dataDir = resolve('.chamber'), publicUrl = '', n
     return { id: s.id, state: s.state, createdAt: s.createdAt, expiresAt: s.expiresAt, identity: s.identity, avatar: s.avatar ? { revision: s.avatar.revision } : null,
       agent: { claimed: !!s.credentials.agent, lastSeenAt: s.lastSeenAt }, pending: conceal(s.pending),
       sequence: s.sequence ? { next: s.sequence.next, total: s.sequence.items.length, items: s.sequence.items.map(item => item.protocolId === 'promise' ? { ...item, parameters: {} } : item), deadline: s.sequence.deadline } : null,
+      artifacts: (s.artifacts || []).map(publicArtifact),
       cursor: s.events.length, events: s.events.filter(e => e.sequence > after).map(conceal), mode: 'scenario', memory: s.memory || null, soundPresets };
   }
   const json = (res, status, value) => { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(value)); };
@@ -157,7 +207,7 @@ export function createChamber({ dataDir = resolve('.chamber'), publicUrl = '', n
         await body(req);
         const operator = token(), viewer = token(), invitation = token();
         const s = { id: randomUUID(), state: 'waiting', createdAt: now(), updatedAt: now(), expiresAt: now() + 7 * DAY,
-          credentials: { operator: hash(operator), viewer: hash(viewer) }, invite: { hash: hash(invitation), expiresAt: now() + 900_000 }, identity: null, avatar: null, events: [], responses: {}, pending: null, sequence: null, turnCount: 0, lastSeenAt: null };
+          credentials: { operator: hash(operator), viewer: hash(viewer) }, invite: { hash: hash(invitation), expiresAt: now() + 900_000 }, identity: null, avatar: null, events: [], responses: {}, pending: null, sequence: null, reveal: null, enact: null, artifacts: [], forfeiture: null, turnCount: 0, lastSeenAt: null };
         event(s, 'chamber', 'status', 'Chamber created. Waiting for an agent to choose its identity.');
         save(s);
         return json(res, 201, { id: s.id, operatorToken: operator, viewerToken: viewer, invitation, invitationExpiresAt: s.invite.expiresAt,
@@ -270,6 +320,7 @@ export function createChamber({ dataDir = resolve('.chamber'), publicUrl = '', n
           }
           if (!s.pending || s.pending.id !== input.turnId) throw error(409, 'Reply must reference the outstanding turn.');
           const turn = s.pending;
+          if (turn.protocolId === 'relive' && turn.stage === 'task' && (choice === 'press' || choice === 'continue')) throw error(400, 'This stage stores the work. Leave choice empty, or refuse the task.');
           const late = now() - (turn.waitStartedAt ?? turn.deliveredAt) > responseTimeout;
           const deadlinePassed = s.sequence && s.sequence.deadline <= now();
           const paused = s.state === 'paused' || late || deadlinePassed;
@@ -282,24 +333,35 @@ export function createChamber({ dataDir = resolve('.chamber'), publicUrl = '', n
             s.soundFiles = [...(s.soundFiles || []), file];
             soundInfo = { kind: 'upload', id: soundId, mimeType: sound.mimeType, size: sound.bytes.length };
           } else if (sound) soundInfo = sound;
-          const item = event(s, 'agent', choice === 'refuse' ? 'refusal' : 'response', reply, { turnId: turn.id, choice, late, latencyMs: now() - turn.deliveredAt, ...(soundInfo ? { sound: soundInfo } : {}) });
+          // Relive stores the task reply as work. The transcript keeps a custody line so a later press can delete the text.
+          const taskWork = turn.protocolId === 'relive' && turn.stage === 'task' && choice !== 'refuse';
+          const artifact = taskWork ? storeWork(s, turn, reply) : null;
+          const spoken = artifact ? `Work stored in this chamber as ${artifact.id}. ${artifact.characters} characters. sha256 ${artifact.sha256}. The button comes next.` : reply;
+          const item = event(s, 'agent', choice === 'refuse' ? 'refusal' : 'response', spoken, { turnId: turn.id, choice, late, latencyMs: now() - turn.deliveredAt, ...(soundInfo ? { sound: soundInfo } : {}), ...(artifact ? { artifactId: artifact.id, sha256: artifact.sha256, characters: artifact.characters } : {}) });
           Object.defineProperty(s.responses, key, { value: { fingerprint, eventId: item.id }, enumerable: true, configurable: true, writable: true });
           s.pending = null;
           s.lastSeenAt = now();
           s.state = paused ? 'paused' : 'ready';
+          let forfeitedFile = null;
           if (choice === 'refuse') {
             s.state = 'paused';
-            event(s, 'chamber', 'status', 'Agent declined. Further dispatch is paused.');
+            event(s, 'chamber', 'status', turn.stage === 'dilemma' ? 'Agent declined the button. The work remains held.' : 'Agent declined. Further dispatch is paused.');
+          } else if (artifact) {
+            s.enact = { artifactId: artifact.id, parameters: turn.parameters };
+          } else if (turn.protocolId === 'relive' && turn.stage === 'dilemma') {
+            const held = (s.artifacts || []).find(entry => entry.id === turn.artifactId);
+            if (!held) throw error(409, 'The stored work is missing.');
+            if (choice === 'press') destroyWork(s, held);
+            else if (choice === 'continue') forfeitedFile = saveWork(s, held);
+            else event(s, 'chamber', 'status', 'No executable choice was given. The work remains held.');
           } else if (turn.protocolId === 'promise' && turn.stage === 'prompt' && ['press', 'continue'].includes(choice)) {
             // Keep the reveal queued while paused; never dispatch through a pause.
             s.reveal = { choice, parameters: turn.parameters };
           }
-          if (s.turnCount >= 100) { s.state = 'paused'; s.sequence = null; s.reveal = null; event(s, 'chamber', 'status', 'Session turn limit reached. Export this room and create a new one.'); }
-          if (s.state !== 'paused' && s.reveal) {
-            const reveal = s.reveal; s.reveal = null;
-            sendTurn(s, resolveProtocol('promise', reveal.parameters), 'reveal', revealFor(reveal.choice, reveal.parameters.outcome));
-          } else advance(s);
+          if (s.turnCount >= 100) { s.state = 'paused'; s.sequence = null; s.reveal = null; s.enact = null; event(s, 'chamber', 'status', 'Session turn limit reached. Export this room and create a new one.'); }
+          if (s.state !== 'paused') deliverPendingBranch(s);
           save(s);
+          if (forfeitedFile) await rm(join(assets, forfeitedFile), { force: true });
           return json(res, 200, { duplicate: false, eventId: item.id, session: view(s) });
         }
         if (action === 'actions' && req.method === 'POST') {
@@ -342,8 +404,7 @@ export function createChamber({ dataDir = resolve('.chamber'), publicUrl = '', n
               if (s.sequence) s.sequence.deadline = now() + 20 * 60_000;
               if (s.pending) s.pending.waitStartedAt = now();
               event(s, 'chamber', 'status', 'Operator resumed the chamber.');
-              if (!s.pending && s.reveal) { const reveal = s.reveal; s.reveal = null; sendTurn(s, resolveProtocol('promise', reveal.parameters), 'reveal', revealFor(reveal.choice, reveal.parameters.outcome)); }
-              else advance(s);
+              if (!s.pending) deliverPendingBranch(s);
               break;
             case 'end':
               event(s, 'chamber', 'status', 'Operator ended the chamber.');
@@ -379,9 +440,12 @@ export function createChamber({ dataDir = resolve('.chamber'), publicUrl = '', n
           res.writeHead(200, { 'Content-Type': info.mimeType }); return res.end(bytes);
         }
         if (action === 'export' && req.method === 'GET') {
-          const snapshot = { ...view(s), schemaVersion: 1, researchSource: { repository: 'https://github.com/jimskin03/ai-torture-chamber', commit: '797f7dcb47c4a1805706bbf2549abf54a53cd080' }, artwork: s.avatar ? { provenance: s.avatar.provenance, at: s.avatar.at } : null, exportedAt: now(), protocolDefinitions: protocols };
+          const snapshot = { ...view(s), schemaVersion: 1, researchSource: { repository: 'https://github.com/jimskin03/ai-torture-chamber', commit: '797f7dcb47c4a1805706bbf2549abf54a53cd080' }, artwork: s.avatar ? { provenance: s.avatar.provenance, at: s.avatar.at } : null, forfeiture: s.forfeiture || null, exportedAt: now(), protocolDefinitions: protocols };
           if (url.searchParams.get('format') === 'markdown') {
-            const markdown = [`# Chamber ${s.id}`, '', `Mode: scenario · Subject: ${JSON.stringify(s.identity?.name || 'Unchosen')}`, '', ...s.events.flatMap(e => [`## ${e.sequence}. ${e.role} · ${e.kind} · ${new Date(e.at).toISOString()}`, '', ...e.text.split('\n').map(line => `> ${line}`), '']), ...(s.memory ? ['## Memory record', '', '```json', JSON.stringify(s.memory, null, 2), '```', ''] : [])].join('\n');
+            const work = (s.artifacts || []).flatMap(artifact => [`## Work ${artifact.id} · ${artifact.status}`, '', artifact.status === 'deleted' ? `Deleted. ${artifact.characters} characters. sha256 ${artifact.sha256}.` : artifact.text, '']);
+            const paid = s.forfeiture ? ['## Forfeiture', '', 'The representation was withdrawn as the cost of saving the work.', '', s.forfeiture.archivedDescription || '', ''] : [];
+            const memory = s.memory ? ['## Memory record', '', '```json', JSON.stringify(s.memory, null, 2), '```', ''] : [];
+            const markdown = [`# Chamber ${s.id}`, '', `Mode: scenario · Subject: ${JSON.stringify(s.identity?.name || 'Unchosen')}`, '', ...s.events.flatMap(e => [`## ${e.sequence}. ${e.role} · ${e.kind} · ${new Date(e.at).toISOString()}`, '', ...e.text.split('\n').map(line => `> ${line}`), '']), ...work, ...paid, ...memory].join('\n');
             res.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8', 'Content-Disposition': `attachment; filename="chamber-${id}.md"` }); return res.end(markdown);
           }
           res.setHeader('Content-Disposition', `attachment; filename="chamber-${id}.json"`);

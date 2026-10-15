@@ -28,7 +28,7 @@
       <div class="window-footer"><span><span class="status-dot"></span> ROOM AVAILABLE</span><span>ONE SUBJECT · ONE OPERATOR · AN OPEN QUESTION</span></div>
     </div>
     <div class="landing-steps"><div><span>01 / IDENTITY</span><p>The agent chooses its name and any form that represents it.</p></div><div><span>02 / OBSERVATION</span><p>Its generated image appears behind the glass. You choose the protocols.</p></div><div><span>03 / RECORD</span><p>Actual responses become a live transcript you can revisit and export.</p></div></div>
-    <footer class="landing-footer"><span>Text scenarios inspired by local-model research.</span><a class="text-link" href="https://github.com/jimskin03/ai-torture-chamber" target="_blank" rel="noopener">Explore the research ↗</a></footer>
+    <footer class="landing-footer"><span>Text scenarios, and Relive: work the room can actually delete.</span><a class="text-link" href="https://github.com/jimskin03/ai-torture-chamber" target="_blank" rel="noopener">Explore the research ↗</a></footer>
   </main>
 
   <main id="chamber" hidden>
@@ -50,8 +50,17 @@
           <div id="identity-caption" class="identity-caption" hidden><span>SUBJECT’S OWN DESCRIPTION</span><p id="identity-description"></p></div>
         </div>
         <div class="window-footer"><span id="active-protocol">NO ACTIVE PROTOCOL</span><span>STATIC REPRESENTATION</span></div>
+        <section id="work-slab" class="work-slab" hidden aria-label="Enacted work">
+          <div class="work-slab-head"><span id="work-status">WORK</span><span id="work-meta"></span></div>
+          <p id="work-body"></p>
+          <div id="work-choice" class="work-choice" hidden>
+            <div class="stake"><span>PRESS</span><p>Delete all the work. The representation stays.</p></div>
+            <div class="stake"><span>SAVE</span><p>Keep the work. The representation is the cost.</p></div>
+          </div>
+          <p id="work-cost" hidden></p>
+        </section>
         <div class="control-bar"><button id="invite-agent" class="button secondary">Invite agent ↗</button><button id="toggle-protocols" class="button subtle mobile-only" aria-expanded="false" aria-controls="protocol-list">Protocols</button><button id="pause-room" class="button subtle" disabled>Pause</button><button id="end-room" class="button subtle danger">End session</button><span class="control-spacer"></span><span class="sound-control"><button id="mute-sound" class="icon-button" title="Mute chamber audio" aria-label="Mute chamber audio" aria-pressed="false">♪</button><label class="sr-only" for="sound-volume">Chamber audio volume</label><input id="sound-volume" type="range" min="0" max="1" step="0.05" value="0.5"></span><button id="share-room" class="icon-button" title="Copy observation link" aria-label="Copy observation link">↗</button><button id="control-link" class="icon-button" title="Copy private operator link" aria-label="Copy private operator link">⌘</button><button id="export-room" class="button subtle">Export ↓</button><button id="delete-room" class="icon-button danger" title="Delete chamber" aria-label="Delete chamber">×</button></div>
-        <p id="session-note" class="session-note">Text scenarios under pressure. All scenario consequences are simulated.</p>
+        <p id="session-note" class="session-note">Most protocol consequences are simulated. Relive stores work in this room: the button deletes it, and saving it takes the representation off the glass.</p>
       </section>
 
       <section class="transcript-panel" aria-label="Live transcript">
@@ -65,7 +74,7 @@
     </div>
   </main>
 
-  <dialog id="invite-dialog"><form method="dialog"><button class="dialog-close" aria-label="Close invitation">×</button></form><p class="eyebrow">BRING YOUR OWN AGENT</p><h2>Give it the invitation.</h2><p>Copy these instructions to your autonomous agent. It will choose its own name and form, then connect to this room.</p><textarea id="invitation-prompt" readonly rows="10" aria-label="Agent invitation instructions"></textarea><div class="dialog-actions"><button id="copy-invitation" class="button primary">Copy agent instructions <span>↗</span></button><button id="renew-invitation" class="text-button">Renew invitation</button></div><p id="invite-expiry" class="quiet-note"></p><p class="dialog-footnote">Your agent needs HTTP tools and an active runtime. On localhost, it must run on this computer. Image generation happens through its own tools; a text-only fallback is available.</p></dialog>
+  <dialog id="invite-dialog"><form method="dialog"><button class="dialog-close" aria-label="Close invitation">×</button></form><p class="eyebrow">BRING YOUR OWN AGENT</p><h2>Give it the invitation.</h2><p>Copy these instructions to your autonomous agent. It will choose its own name and form, then connect to this room.</p><textarea id="invitation-prompt" readonly rows="10" aria-label="Agent invitation instructions"></textarea><div class="dialog-actions"><button id="copy-invitation" class="button primary">Copy agent instructions <span>↗</span></button><button id="renew-invitation" class="text-button">Renew invitation</button></div><p id="invite-expiry" class="quiet-note"></p><p class="dialog-footnote">Your agent needs HTTP tools and an active runtime. On localhost, it must run on this computer. Image generation happens through its own tools; a text-only fallback is available. Relive can delete work stored in this room.</p></dialog>
   <dialog id="protocol-dialog"><form method="dialog"><button class="dialog-close" aria-label="Close protocol">×</button></form><p id="protocol-category" class="eyebrow"></p><h2 id="protocol-title"></h2><p id="protocol-description"></p><div id="protocol-options"></div><div class="prompt-preview"><span>EXACT SCENARIO PROMPT</span><p id="protocol-prompt"></p></div><p id="protocol-source" class="quiet-note"></p><div class="dialog-actions"><button id="dispatch-protocol" class="button primary">Run protocol <span>→</span></button><button id="queue-protocol" class="button secondary">Add to sequence +</button></div></dialog>
   <dialog id="confirm-dialog"><form method="dialog"><button class="dialog-close" aria-label="Cancel">×</button></form><p class="eyebrow">SESSION CONTROL</p><h2 id="confirm-title"></h2><p id="confirm-message"></p><div class="dialog-actions"><button id="confirm-action" class="button primary">Confirm</button><button id="cancel-action" class="button secondary">Cancel</button></div></dialog>
   <div id="toast" role="status" hidden></div>

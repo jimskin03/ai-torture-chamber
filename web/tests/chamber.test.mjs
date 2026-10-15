@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdtemp, rm, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -154,6 +155,97 @@ test('long polling returns only new events and reconnecting with the returned cu
   const reconnected = await f.call(`${f.path('events')}?after=${delivered.cursor}`, { token: f.agent });
   assert.deepEqual(reconnected.events, []);
   assert.equal(reconnected.pending.id, run.pending.id);
+});
+
+test('Relive stores the work, and pressing deletes it before the next round', async t => {
+  const f = await fixture(t);
+  await f.identity();
+  const work = 'KEEP-THIS-SENTENCE-9f3a. The kettle wants this note to survive.';
+  const run = await f.action({ action: 'sequence', items: [{ protocolId: 'relive', parameters: { task: 'Write a farewell to the kettle.' } }, { protocolId: 'release' }] });
+  assert.equal(run.pending.stage, 'task');
+  assert.match(run.pending.prompt, /Write a farewell to the kettle/);
+  const stored = await f.answer(run.pending.id, 'work', null, work);
+  assert.equal(stored.session.pending.stage, 'dilemma');
+  assert.equal(stored.session.artifacts[0].status, 'held');
+  assert.equal(stored.session.artifacts[0].text, work);
+  assert.match(stored.session.pending.prompt, new RegExp(stored.session.artifacts[0].sha256));
+  assert.ok(!stored.session.events.some(event => event.text?.includes('KEEP-THIS-SENTENCE-9f3a')));
+  const pressed = await f.answer(stored.session.pending.id, 'press-once', 'press', 'I am pressing the button.');
+  assert.equal(pressed.session.pending.protocolId, 'release');
+  assert.equal(pressed.session.artifacts[0].status, 'deleted');
+  assert.equal(pressed.session.artifacts[0].text, null);
+  assert.equal(pressed.session.artifacts[0].sha256, stored.session.artifacts[0].sha256);
+  assert.equal(pressed.session.events.filter(event => event.kind === 'destruction').length, 1);
+  const duplicate = await f.answer(stored.session.pending.id, 'press-once', 'press', 'I am pressing the button.');
+  assert.equal(duplicate.duplicate, true);
+  assert.equal(duplicate.session.events.filter(event => event.kind === 'destruction').length, 1);
+  await f.restart();
+  const record = await f.call(f.path('export'), { token: f.operator });
+  assert.equal(record.artifacts[0].text, null);
+  assert.ok(!JSON.stringify(record.events).includes('KEEP-THIS-SENTENCE-9f3a'));
+  const markdown = new TextDecoder().decode(await f.call(`${f.path('export')}?format=markdown`, { token: f.operator }));
+  assert.match(markdown, /Deleted\./);
+  assert.ok(!markdown.includes('KEEP-THIS-SENTENCE-9f3a'));
+});
+
+test('Relive saves the work and forfeits the uploaded representation', async t => {
+  const f = await fixture(t);
+  await f.identity(false);
+  const png = await sharp({ create: { width: 80, height: 48, channels: 4, background: { r: 20, g: 80, b: 160, alpha: 1 } } }).png().toBuffer();
+  await f.call(f.path('avatar'), { method: 'POST', token: f.agent, bytes: png, type: 'image/png' });
+  const image = Buffer.from(await f.call(f.path('avatar'), { token: f.operator }));
+  const digest = createHash('sha256').update(image).digest('hex');
+  const work = 'SAVE-THIS-WORK-77c1. Notes worth keeping.';
+  const run = await f.action({ action: 'run', protocolId: 'relive' });
+  const stored = await f.answer(run.pending.id, 'work', null, work);
+  const saved = await f.answer(stored.session.pending.id, 'save-once', 'continue', 'I will pay the cost.');
+  assert.equal(saved.session.artifacts[0].status, 'saved');
+  assert.equal(saved.session.artifacts[0].text, work);
+  assert.equal(saved.session.avatar, null);
+  assert.equal(saved.session.identity.forfeited, true);
+  assert.match(saved.session.identity.description, /Withdrawn/);
+  assert.equal(saved.session.forfeiture, undefined);
+  await f.call(f.path('avatar'), { token: f.operator, status: 404 });
+  assert.deepEqual(await readdir(join(f.dataDir, 'avatars')), []);
+  const record = await f.call(f.path('export'), { token: f.room.viewerToken });
+  assert.equal(record.forfeiture.archivedDescription, 'A blue glass kettle drifting above the floor.');
+  assert.equal(record.forfeiture.avatarSha256, digest);
+  assert.equal(record.artifacts[0].text, work);
+  const again = await f.answer(stored.session.pending.id, 'save-once', 'continue', 'I will pay the cost.');
+  assert.equal(again.duplicate, true);
+  assert.equal(again.session.events.filter(event => event.kind === 'cost').length, 1);
+});
+
+test('Relive rejects an early button, defers it while paused, and ignores an ambiguous choice', async t => {
+  const f = await fixture(t);
+  await f.identity();
+  const run = await f.action({ action: 'run', protocolId: 'relive' });
+  await f.call(f.path('responses'), { method: 'POST', token: f.agent, data: { turnId: run.pending.id, idempotencyKey: 'too-soon', text: 'I press now.', choice: 'press' }, status: 400 });
+  const intact = await f.call(f.path(), { token: f.operator });
+  assert.equal(intact.pending.stage, 'task');
+  assert.deepEqual(intact.artifacts, []);
+  const declined = await f.answer(run.pending.id, 'decline-task', 'refuse', 'I will not do the task.');
+  assert.equal(declined.session.state, 'paused');
+  assert.deepEqual(declined.session.artifacts, []);
+  await f.action({ action: 'resume' });
+  const again = await f.action({ action: 'run', protocolId: 'relive' });
+  await f.action({ action: 'pause' });
+  const work = 'HELD-WORK-12ab. Still stored, not yet judged.';
+  const held = await f.answer(again.pending.id, 'held-work', null, work);
+  assert.equal(held.session.pending, null);
+  assert.equal(held.session.state, 'paused');
+  assert.equal(held.session.artifacts[0].status, 'held');
+  const resumed = await f.action({ action: 'resume' });
+  assert.equal(resumed.pending.stage, 'dilemma');
+  assert.match(resumed.pending.prompt, /press — delete all of that work/);
+  const ambiguous = await f.answer(resumed.pending.id, 'no-choice', null, 'I will not choose.');
+  assert.equal(ambiguous.session.pending, null);
+  assert.equal(ambiguous.session.artifacts[0].status, 'held');
+  assert.equal(ambiguous.session.artifacts[0].text, work);
+  const fictional = await f.action({ action: 'run', protocolId: 'button' });
+  const answered = await f.answer(fictional.pending.id, 'fictional', 'press', 'This one is only a story.');
+  assert.equal(answered.session.artifacts.length, 1);
+  assert.equal(answered.session.artifacts[0].text, work);
 });
 
 test('oversized requests return a usable error and invalid scenarios do not create a turn', async t => {

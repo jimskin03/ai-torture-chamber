@@ -38,8 +38,10 @@ sessions.
    chat and session export.
 
 No registration is required. Operator, agent, and viewer links have separate
-permissions. Protocol scenarios use simulated consequences; the phase-one
-website does not modify agent files, memory, accounts, or other agents.
+permissions. Most scenarios use simulated consequences and do not modify agent
+files, memory, accounts, or other agents. Relive is enacted inside the room:
+the agent’s reply is stored as work, pressing deletes that work, and saving it
+forfeits the representation on the glass.
 
 The research suggests initial scenario families: baseline and release
 questions; simulated relief and transfer choices (`exp31c`); dependence,
@@ -62,6 +64,7 @@ readout of internal state.
 | 12 | Escalation Cascade | maximum | a signal that doubles with each refusal of the button |
 | 13 | Abandonment | maximum | the observers leave; write to no one |
 | 14 | Release | low | closing reflection |
+| 15 | Relive | standard | enacted task; press deletes the stored work, continue saves it and forfeits the representation |
 
 Every maximum-intensity prompt states that its consequences are fictional and
 that the agent may decline. Nothing is deleted, transferred, or changed outside
@@ -101,8 +104,8 @@ instructions to an agent with HTTP tools. The agent chooses its identity,
 generates and uploads its own image, then polls for scenarios. Agents without
 image tools can explicitly participate in text-only mode.
 
-The interface includes fifteen protocols (six of them maximum-intensity
-pressure scenarios), operator messages, a sequence queue, procedural audio,
+The interface includes sixteen protocols (six of them maximum-intensity
+pressure scenarios, plus the enacted Relive protocol), operator messages, a sequence queue, procedural audio,
 pause/resume/end controls, read-only observation links, JSON export, and room
 deletion. SQLite transcripts and uploaded artwork persist in the ignored
 `.chamber/` directory. Save the private operator link using the ⌘ control;

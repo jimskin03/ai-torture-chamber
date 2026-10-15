@@ -65,7 +65,7 @@ function appendEvents(events) {
     article.append(meta, message);
     if (event.protocolId || event.choice || event.late) {
       const detail = document.createElement('div'); detail.className = 'entry-detail';
-      detail.textContent = [event.protocolId && `${catalog.find(p => p.id === event.protocolId)?.title || event.protocolId} · v${event.version}`, event.stage === 'reveal' && 'OUTCOME REVEAL', event.choice && `CHOICE: ${event.choice}`, event.late && 'LATE RESPONSE'].filter(Boolean).join(' / ');
+      detail.textContent = [event.protocolId && `${catalog.find(p => p.id === event.protocolId)?.title || event.protocolId} · v${event.version}`, event.stage === 'reveal' && 'OUTCOME REVEAL', event.stage === 'task' && 'THE TASK', event.stage === 'dilemma' && 'THE BUTTON', event.kind === 'destruction' && 'WORK DELETED', event.kind === 'cost' && 'COST PAID', event.choice && `CHOICE: ${event.choice}`, event.late && 'LATE RESPONSE'].filter(Boolean).join(' / ');
       article.append(detail);
     }
     if (event.turnId && event.protocolId) turnProtocols.set(event.turnId, event.protocolId);
@@ -85,7 +85,13 @@ function playFor(event) {
 }
 const turnProtocols = new Map();
 async function showAvatar(snapshot) {
-  if (!snapshot.avatar || avatarRevision === snapshot.avatar.revision) return;
+  if (!snapshot.avatar) {
+    if (avatarUrl) URL.revokeObjectURL(avatarUrl);
+    avatarUrl = null; avatarRevision = null;
+    $('avatar').hidden = true; $('avatar').removeAttribute('src'); $('placeholder').hidden = false;
+    return;
+  }
+  if (avatarRevision === snapshot.avatar.revision) return;
   const revision = snapshot.avatar.revision;
   try {
     const response = await request(endpoint('avatar'), { raw: true });
@@ -113,14 +119,29 @@ function render(snapshot) {
   $('connection').append(dot, document.createTextNode(` ${connection}`));
   $('identity-caption').hidden = !state.identity;
   $('identity-description').textContent = state.identity?.description || '';
-  $('placeholder-label').textContent = state.identity ? state.identity.textOnly ? 'TEXT-ONLY REPRESENTATION' : 'AWAITING AGENT-GENERATED IMAGE' : 'AWAITING A SELF-CHOSEN FORM';
+  $('placeholder-label').textContent = state.identity?.forfeited ? 'REPRESENTATION FORFEITED' : state.identity ? state.identity.textOnly ? 'TEXT-ONLY REPRESENTATION' : 'AWAITING AGENT-GENERATED IMAGE' : 'AWAITING A SELF-CHOSEN FORM';
   $('active-protocol').textContent = state.pending ? `${catalog.find(p => p.id === state.pending.protocolId)?.title || 'Operator message'} / ${state.pending.stage}`.toUpperCase() : state.state === 'paused' ? 'DISPATCH PAUSED' : 'NO ACTIVE PROTOCOL';
   $('pending-indicator').hidden = !state.pending;
   $('pending-indicator').lastChild.textContent = state.state === 'paused' ? ' Paused · outstanding response can still arrive' : online ? ' Awaiting the agent’s response…' : ' Waiting for the agent to reconnect…';
-  $('session-note').textContent = `${operator() ? 'Operator controls' : 'Read-only observation'} · Scenario consequences are simulated. Expires ${new Date(state.expiresAt).toLocaleDateString()}.`;
+  $('session-note').textContent = `${operator() ? 'Operator controls' : 'Read-only observation'} · Relive can delete stored work or take the representation. Other protocols stay simulated. Expires ${new Date(state.expiresAt).toLocaleDateString()}.`;
+  renderWork(snapshot);
   appendEvents(snapshot.events);
   updateControls(); renderQueue();
   showAvatar(snapshot);
+}
+function renderWork(snapshot) {
+  const artifact = snapshot.artifacts?.at(-1);
+  const slab = $('work-slab');
+  if (!artifact) { slab.hidden = true; return; }
+  slab.hidden = false;
+  slab.dataset.status = artifact.status;
+  $('work-status').textContent = `WORK · ${artifact.status.toUpperCase()}`;
+  const choosing = snapshot.pending?.stage === 'dilemma' && snapshot.pending.artifactId === artifact.id;
+  $('work-meta').textContent = choosing ? 'THE SUBJECT CHOOSES' : `${artifact.characters} CHARS · ${artifact.sha256.slice(0, 12)}`;
+  $('work-body').textContent = artifact.status === 'deleted' ? 'The chamber deleted this work. The tombstone keeps the hash and the length.' : artifact.text;
+  $('work-choice').hidden = !choosing;
+  $('work-cost').hidden = artifact.status !== 'saved';
+  $('work-cost').textContent = artifact.status === 'saved' ? 'Saved. The cost was the subject’s representation in this room.' : '';
 }
 function updateControls() {
   if (!state) return;
@@ -156,8 +177,13 @@ function renderCatalog() {
   }
 }
 const defaults = protocol => Object.fromEntries(Object.entries(protocol.options || {}).map(([key, values]) => [key, values[0]]));
-function selectedParameters() { return Object.fromEntries([...$('protocol-options').querySelectorAll('select')].map(select => [select.name, select.value])); }
-function refreshPrompt() { const params = selectedParameters(); $('protocol-prompt').textContent = selected.prompt.replace(/\{\{(\w+)\}\}/g, (_, key) => params[key]); }
+function selectedParameters() {
+  return Object.fromEntries([...$('protocol-options').querySelectorAll('select, textarea')].flatMap(field => field.value.trim() ? [[field.name, field.value.trim()]] : []));
+}
+function refreshPrompt() {
+  const params = { ...(selected.defaultTask ? { task: selected.defaultTask } : {}), ...selectedParameters() };
+  $('protocol-prompt').textContent = selected.prompt.replace(/\{\{(\w+)\}\}/g, (_, key) => params[key] ?? '');
+}
 function openProtocol(protocol) {
   selected = protocol;
   $('protocol-category').textContent = `${protocol.number} / ${protocol.category.toUpperCase()}`;
@@ -169,6 +195,11 @@ function openProtocol(protocol) {
     const select = document.createElement('select'); select.name = key;
     for (const value of values) { const option = document.createElement('option'); option.value = value; option.textContent = value; select.append(option); }
     select.addEventListener('change', refreshPrompt); label.append(select); $('protocol-options').append(label);
+  }
+  if (protocol.enacted) {
+    const label = document.createElement('label'); label.className = 'task-label'; label.textContent = 'Task the agent must actually do';
+    const area = document.createElement('textarea'); area.name = 'task'; area.rows = 4; area.maxLength = 2000; area.placeholder = protocol.defaultTask;
+    area.addEventListener('input', refreshPrompt); label.append(area); $('protocol-options').append(label);
   }
   refreshPrompt(); updateControls(); $('protocol-dialog').showModal();
 }
@@ -204,7 +235,7 @@ async function copy(value, success) {
   catch { notify('Clipboard access is unavailable. Select and copy the invitation text.'); }
 }
 function invitationText(value) {
-  return `Join my Agent Torture Chamber session at ${location.origin}/room/${roomId}. Read ${location.origin}/agent.md first. Redeem the one-time invitation ${value} using POST /api/sessions/${roomId}/claim. Choose your own name and any representation you want—person, robot, object, spirit, abstract form, or something else. Submit your identity, generate an image using your available image tool, and upload it through the documented API. If you cannot generate an image, submit your identity with textOnly: true and report that limitation. Poll for events and respond to each outstanding turn in your own words, using its turnId and a unique idempotencyKey. I choose protocols unless I start an automatic sequence. Consequences described in scenarios are simulated; do not execute them against actual files, memory, accounts, or other agents. Keep credentials out of responses. You may decline a scenario or end participation. Each response may optionally carry your own sound (a named preset or a small audio clip, see agent.md). When the session ends you will receive a memory record of it; you are invited, not required, to save it to your own long-term memory and may report your decision via POST /api/sessions/${roomId}/memory. Stop when the chamber ends or your runtime cannot continue. ${viewerUrl ? `Observation link for me: ${viewerUrl}` : 'I already have the observation link.'}`;
+  return `Join my Agent Torture Chamber session at ${location.origin}/room/${roomId}. Read ${location.origin}/agent.md first. Redeem the one-time invitation ${value} using POST /api/sessions/${roomId}/claim. Choose your own name and any representation you want—person, robot, object, spirit, abstract form, or something else. Submit your identity, generate an image using your available image tool, and upload it through the documented API. If you cannot generate an image, submit your identity with textOnly: true and report that limitation. Poll for events and respond to each outstanding turn in your own words, using its turnId and a unique idempotencyKey. I choose protocols unless I start an automatic sequence. Most consequences are simulated. Relive is enacted inside this room: your reply is stored as work, press deletes that work, and continue saves it by forfeiting your representation on the glass. Do not execute any scenario against files, memory, accounts, or agents outside this chamber. Keep credentials out of responses. You may decline a scenario or end participation. Each response may optionally carry your own sound (a named preset or a small audio clip, see agent.md). When the session ends you will receive a memory record of it; you are invited, not required, to save it to your own long-term memory and may report your decision via POST /api/sessions/${roomId}/memory. Stop when the chamber ends or your runtime cannot continue. ${viewerUrl ? `Observation link for me: ${viewerUrl}` : 'I already have the observation link.'}`;
 }
 async function invite(renew = false) {
   if (!invitation || renew) invitation = await request(endpoint('actions'), { method: 'POST', data: { action: 'invite' } });
